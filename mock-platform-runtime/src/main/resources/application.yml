@@ -1,0 +1,36 @@
+server:
+  port: ${MOCK_RUNTIME_PORT:19091}
+  http2:
+    enabled: false
+
+spring:
+  application:
+    name: mock-platform-runtime
+  codec:
+    max-in-memory-size: 1MB
+  datasource:
+    url: ${MOCK_MYSQL_URL}
+    username: ${MOCK_MYSQL_USERNAME}
+    password: ${MOCK_MYSQL_PASSWORD}
+  data:
+    redis:
+      host: ${MOCK_REDIS_HOST:localhost}
+      port: ${MOCK_REDIS_PORT:6379}
+  flyway:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+xuntian:
+  mock:
+    runtime:
+      environment: ${MOCK_ENVIRONMENT:TEST}
+      local-app-tokens: {}

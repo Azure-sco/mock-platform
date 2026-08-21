@@ -1,0 +1,35 @@
+server:
+  port: ${SAMPLE_JDK17_PORT:19094}
+
+spring:
+  application:
+    name: mock-sample-jdk17
+
+cps:
+  base-url: ${CPS_BASE_URL:http://localhost:19092}
+  domain: ${CPS_DOMAIN:cps-test}
+
+xuntian:
+  mock:
+    client:
+      app-code: sample-jdk17
+      environment: ${MOCK_ENVIRONMENT:TEST}
+      runtime-base-uri: ${MOCK_RUNTIME_BASE_URI:http://localhost:19091}
+      mode: ${MOCK_MODE:REAL}
+      unavailable-policy: ${MOCK_UNAVAILABLE_POLICY:FAST_FAIL}
+      mock-app-token: ${MOCK_APP_TOKEN:}
+      tenant: ${MOCK_TENANT:m0-tenant}
+      test-account: ${MOCK_TEST_ACCOUNT:m0-account}
+      business-no: ${MOCK_BUSINESS_NO:M0-DEMO}
+      allowed-business-headers:
+        - domain
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

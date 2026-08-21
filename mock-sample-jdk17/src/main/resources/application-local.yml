@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+xuntian:
+  mock:
+    client:
+      mock-app-token: local-token-17

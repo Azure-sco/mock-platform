@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<toolchains>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <version>8</version>
+            <vendor>any</vendor>
+        </provides>
+        <configuration>
+            <jdkHome>C:\path\to\jdk8</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <version>17</version>
+            <vendor>any</vendor>
+        </provides>
+        <configuration>
+            <jdkHome>C:\path\to\jdk17</jdkHome>
+        </configuration>
+    </toolchain>
+</toolchains>

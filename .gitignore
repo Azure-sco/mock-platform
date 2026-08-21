@@ -1,0 +1,16 @@
+target/
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+.env
+.mvn/toolchains.xml
+
+mock-platform-web/node_modules/
+mock-platform-web/dist/
+mock-platform-web/.eslintcache
+
+.codex-tmp/
+.m2-repository/

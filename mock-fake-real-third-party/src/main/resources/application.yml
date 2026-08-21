@@ -1,0 +1,16 @@
+server:
+  port: ${FAKE_REAL_PORT:19092}
+
+spring:
+  application:
+    name: mock-fake-real-third-party
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

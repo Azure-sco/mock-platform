@@ -1,0 +1,34 @@
+server:
+  port: ${SAMPLE_JDK8_PORT:19093}
+
+spring:
+  application:
+    name: mock-sample-jdk8
+
+oa:
+  base-url: ${OA_BASE_URL:http://localhost:19092}
+
+xuntian:
+  mock:
+    client:
+      app-code: sample-jdk8
+      environment: ${MOCK_ENVIRONMENT:TEST}
+      runtime-base-uri: ${MOCK_RUNTIME_BASE_URI:http://localhost:19091}
+      mode: ${MOCK_MODE:REAL}
+      unavailable-policy: ${MOCK_UNAVAILABLE_POLICY:FAST_FAIL}
+      mock-app-token: ${MOCK_APP_TOKEN:}
+      tenant: ${MOCK_TENANT:m0-tenant}
+      test-account: ${MOCK_TEST_ACCOUNT:m0-account}
+      business-no: ${MOCK_BUSINESS_NO:M0-DEMO}
+      allowed-business-headers:
+        - X-Business-Tag
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -1,0 +1,11 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+xuntian:
+  mock:
+    runtime:
+      local-app-tokens:
+        local-token-8: sample-jdk8
+        local-token-17: sample-jdk17

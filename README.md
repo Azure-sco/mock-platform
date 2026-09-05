@@ -1,6 +1,6 @@
 # 巡天第三方接口 Mock 平台
 
-当前仓库实现 **Phase 0 + M0 技术 PoC**：业务应用在方法上声明 `@ThirdPartyMock`，SDK 可在不重启应用的情况下选择 REAL、MOCK 或受控 CANARY 路由，并通过 Feign/RestTemplate 将请求复制、脱敏后发送到 Runtime。Runtime 当前只返回明确的 M0 固定响应；Provider/API/Contract、Scenario、Release、Flow、Callback、AI 等 M1+ 能力尚未实现。
+当前仓库实现 **M0～M5 的 MVP 代码基线**：SDK 支持 REAL/MOCK/CANARY 与签名配置原子切换；Control 提供 Provider/API/Contract、Scenario/Approval/Release、Security Policy、SDK Config、Flow、Callback、Request/Audit 管理；Runtime 只从已编译 Snapshot 决策，并实现持久化 Flow、RequestExecution、Callback 和受控故障。目标环境性能、30 天 SLI、双实例滚动发布及公司 SSO/KMS/Apollo/Nacos 适配仍是正式 MVP Exit 门禁，不能由本地自动化结果代替。
 
 ## 架构
 
@@ -15,7 +15,7 @@ flowchart LR
     W["Vue Console"] --> P["Control · Spring MVC"]
     P --> M[("MySQL 8")]
     P --> D[("Redis 7")]
-    R -. "M1+ business state" .-> M
+    R -->|"Flow / Execution / Request Log"| M
     R -. "rebuildable projection" .-> D
 ```
 
@@ -27,18 +27,18 @@ flowchart LR
 |---|---:|---|
 | `mock-client-annotation` | 8 | `@ThirdPartyMock` 契约 |
 | `mock-client-core` | 8 | Context、不可变路由快照、URL 改写、Header 脱敏、失败策略 |
-| `mock-client-config-spi` | 8 | 配置 Provider SPI 与 M0 `LocalConfigProvider` |
-| `mock-client-apollo-adapter` | 8 | Apollo 回调边界；未接真实 Apollo 客户端 |
-| `mock-client-nacos-adapter` | 17 | Nacos 回调边界；未接真实 Nacos 客户端 |
+| `mock-client-config-spi` | 8 | 签名 Config Wrapper/Envelope 校验、原子激活与 ACK SPI |
+| `mock-client-apollo-adapter` | 8 | Apollo 发布/回调 Adapter 边界；真实公司客户端外接 |
+| `mock-client-nacos-adapter` | 17 | Nacos 发布/回调 Adapter 边界；真实公司客户端外接 |
 | `mock-client-boot2-starter` | 8 | Boot 2 AOP、Feign Client 装饰器、RestTemplate RequestFactory 装饰器 |
 | `mock-client-boot3-starter` | 17 | Boot 3 对应适配，和 Boot 2 完全隔离 |
 | `mock-platform-common` | 17 | 平台错误、响应、分页、脱敏、校验和、时钟、Request/Trace ID |
-| `mock-platform-control` | 17 | 管理面骨架、健康检查、本地身份/RBAC Port、Flyway/MyBatis/Redis 门禁 |
-| `mock-platform-runtime` | 17 | HTTP/1.1 Reactor Netty 数据面、MockApp 身份、1 MiB 限制、M0 固定响应 |
+| `mock-platform-control` | 17 | 管理面、审批、发布/回滚、策略、SDK Config、Flow/Callback 运维、审计与 Dashboard |
+| `mock-platform-runtime` | 17 | HTTP/1.1 数据面、Contract/Scenario、Release LKG、Flow/Execution、故障和 Request Log |
 | `mock-fake-real-third-party` | 17 | OA/CPS_EQB 真实目标替身与调用计数 |
 | `mock-sample-jdk8` | 8 | Boot 2 + OpenFeign + RestTemplate 长期兼容性 Harness |
 | `mock-sample-jdk17` | 17 | Boot 3 + OpenFeign + RestTemplate 端到端 Harness |
-| `mock-platform-web` | Node 20+ | Vue 3 控制台壳、Dashboard、Control/Runtime 健康状态 |
+| `mock-platform-web` | Node 20+ | Vue 3 的 14 个 MVP 管理与观测页面 |
 
 完整依赖关系见 [module-dependencies.md](docs/architecture/module-dependencies.md)。
 
@@ -85,7 +85,7 @@ Compose 提供 MySQL `8.0.36`、Redis `7.2-alpine`、持久卷和健康检查。
 .\mvnw.cmd -t .mvn\toolchains.xml clean verify
 ```
 
-如果 Docker 可用，`InfrastructureGateTest` 会启动隔离的 MySQL/Redis，验证 Flyway、MyBatis、事务回滚、Redis namespace 与 TTL；Docker 不可用时 Testcontainers 会明确跳过该门禁。
+如果 Docker 可用，`InfrastructureGateTest` 会启动隔离的 MySQL/Redis，验证 Flyway V1～V3、事务/约束、发布投影与 ACK、Dashboard/Audit SQL；Docker 不可用时 Testcontainers 会明确跳过，跳过不能记为通过。
 
 ### 3. 设置本地服务环境变量
 
@@ -175,6 +175,6 @@ npm run build
 
 ## 当前阶段与限制
 
-已完成 Phase 0 工程骨架和 M0 SDK/Runtime 纵向 PoC。Apollo、Nacos 仅完成适配边界，SSO/RBAC/Service Identity 仅有 `local`/`test` 实现，KMS、mTLS、服务发现、实例摘流和公司监控尚未接入。详情见 [external-dependencies.md](docs/m0/external-dependencies.md)。
+M1～M4 核心实现和自动化样例已完成；M5 已有九接口目录、Web Console、固定性能脚本和运维文档，但正式性能/故障/可用性证据及公司基础设施 Adapter 尚未完成。准确能力、偏差和外部依赖见 [当前实现能力](docs/current-implementation-capabilities.md)。
 
-下一阶段仅建议进入 M1：Provider/API/Contract、Scenario、简单白名单 Template 和 RequestLog。当前不得把 M0 固定响应包装成完整业务能力，也不应提前实现 Flow、Callback、Security Policy 或 AI。
+从零启动、Docker、Flyway、后端、双 JDK Sample 和 Web 的精确操作见 [本地启动与人工验收指南](docs/development/manual-acceptance-guide.md)；性能与故障演练见 [MVP 运维、性能与故障演练](docs/development/mvp-operations-and-fault-drills.md)。

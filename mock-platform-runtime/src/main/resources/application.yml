@@ -33,4 +33,6 @@ xuntian:
   mock:
     runtime:
       environment: ${MOCK_ENVIRONMENT:TEST}
+      runtime-node-id: ${MOCK_RUNTIME_NODE_ID:runtime-node-unconfigured}
+      published-apps: ${MOCK_RUNTIME_APPS:}
       local-app-tokens: {}

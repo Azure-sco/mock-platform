@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { getDashboardSummary } from '../../../api/admin'
+import type { DashboardSummary } from '../../../types/admin'
 import { useErrorStore } from '../../../stores/errors'
 import { useHealthStore } from '../../../stores/health'
 import { useSessionStore } from '../../../stores/session'
@@ -7,19 +9,27 @@ import { useSessionStore } from '../../../stores/session'
 const health = useHealthStore()
 const errors = useErrorStore()
 const session = useSessionStore()
+const summary = ref<DashboardSummary | null>(null)
 
-onMounted(() => health.refresh())
+async function refresh() {
+  await Promise.all([
+    health.refresh(),
+    getDashboardSummary().then((value) => { summary.value = value }),
+  ])
+}
+
+onMounted(refresh)
 </script>
 
 <template>
   <section class="dashboard">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">TECHNICAL PROOF OF CONCEPT</p>
-        <h2>第三方调用链路状态</h2>
-        <p>验证 SDK、控制面、Runtime 与假真实服务的 M0 最小闭环。</p>
+        <p class="eyebrow">MVP · OPERATIONS OVERVIEW</p>
+        <h2>第三方 Mock 运行状态</h2>
+        <p>验证 SDK 路由、契约、确定性场景匹配、受限模板与持久化请求记录。</p>
       </div>
-      <el-button type="primary" :loading="health.loading" @click="health.refresh">刷新状态</el-button>
+      <el-button type="primary" :loading="health.loading" @click="refresh">刷新状态</el-button>
     </div>
 
     <el-alert
@@ -51,9 +61,24 @@ onMounted(() => health.refresh())
         <small>生产环境强制 REAL</small>
       </article>
       <article class="metric-card">
-        <div class="metric-label">M0 Fixtures</div>
-        <strong>4</strong>
-        <small>OA 2 · CPS_EQB 2</small>
+        <div class="metric-label">24h 请求 / 命中率</div>
+        <strong>{{ summary?.requests ?? 0 }} / {{ (summary?.hitRate ?? 0).toFixed(1) }}%</strong>
+        <small>NO_MATCH {{ summary?.noMatchRequests ?? 0 }}</small>
+      </article>
+      <article class="metric-card">
+        <div class="metric-label">24h P95</div>
+        <strong>{{ summary?.p95DurationMs ?? 0 }} ms</strong>
+        <small>Runtime 端到端耗时</small>
+      </article>
+      <article class="metric-card">
+        <div class="metric-label">Callback</div>
+        <strong>{{ (summary?.callbackSuccessRate ?? 0).toFixed(1) }}%</strong>
+        <small>重试 {{ summary?.callbackRetries ?? 0 }}</small>
+      </article>
+      <article class="metric-card">
+        <div class="metric-label">配置对象</div>
+        <strong>{{ summary?.providers ?? 0 }} / {{ summary?.apis ?? 0 }}</strong>
+        <small>Provider / API；场景 {{ summary?.scenarios ?? 0 }}；Release {{ summary?.releases ?? 0 }}</small>
       </article>
     </div>
 
@@ -62,7 +87,7 @@ onMounted(() => health.refresh())
         <template #header>
           <div class="card-heading">
             <span>已验证能力</span>
-            <el-tag type="success" effect="plain">M0</el-tag>
+            <el-tag type="success" effect="plain">MVP</el-tag>
           </div>
         </template>
         <el-table :data="[
@@ -84,7 +109,7 @@ onMounted(() => health.refresh())
           <li><span class="check">✓</span><div><strong>凭证剥离</strong><p>Mock 副本移除 Token、Cookie 与 Signature。</p></div></li>
           <li><span class="check">✓</span><div><strong>失败策略</strong><p>FAST_FAIL、受限回真实与固定兜底响应。</p></div></li>
           <li><span class="check">✓</span><div><strong>连接断开 PoC</strong><p>Runtime 收到请求后绝不回真实目标。</p></div></li>
-          <li><span class="future">M1</span><div><strong>管理闭环</strong><p>Provider、Scenario、Release 等功能尚未开放。</p></div></li>
+          <li><span class="check">✓</span><div><strong>MVP 管理闭环</strong><p>Provider、API、Contract、Scenario、Release、Flow、Callback、Request 与 Audit 均可查询管理。</p></div></li>
         </ul>
       </el-card>
     </div>

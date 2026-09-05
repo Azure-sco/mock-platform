@@ -1,0 +1,43 @@
+package com.xuntian.mock.control.callback;
+
+import java.time.Instant;
+
+public record CallbackTaskRecord(
+        long id,
+        String taskId,
+        String deliveryId,
+        long flowEventId,
+        long flowInstanceId,
+        int flowGeneration,
+        String releaseId,
+        String snapshotChecksum,
+        String callbackDefinitionId,
+        int deliveryIndex,
+        String providerCode,
+        String apiCode,
+        byte[] callbackUrlEncrypted,
+        String httpMethod,
+        byte[] headersJsonEncrypted,
+        byte[] payloadEncrypted,
+        String renderedPayloadHash,
+        String encryptionKeyId,
+        long callbackSignaturePolicyVersionId,
+        long callbackAllowlistPolicyVersionId,
+        String status,
+        Instant nextExecuteAt,
+        int sendAttemptCount,
+        int maxRetry,
+        String retryIntervalsJson,
+        int preparationRetryCount,
+        int maxPreparationRetry,
+        int manualSendGrantCount,
+        int manualPreparationGrantCount,
+        String leaseOwner,
+        Instant leaseUntil,
+        long fencingToken,
+        Integer lastHttpStatus,
+        String lastErrorMasked,
+        Instant expireAt,
+        Instant createdAt,
+        Instant updatedAt) {
+}

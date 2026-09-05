@@ -37,12 +37,14 @@
         <junit.version>5.10.1</junit.version>
         <assertj.version>3.24.2</assertj.version>
         <mockito.version>4.11.0</mockito.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <spring.boot2.version>2.7.15</spring.boot2.version>
         <spring.cloud2.version>2021.0.5</spring.cloud2.version>
         <spring.boot3.version>3.1.6</spring.boot3.version>
         <spring.cloud3.version>2022.0.4</spring.cloud3.version>
         <mybatis.boot3.version>3.0.3</mybatis.boot3.version>
+        <re2j.version>1.7</re2j.version>
+        <jackson.databind.version>2.13.5</jackson.databind.version>
     </properties>
 
     <dependencyManagement>
@@ -70,6 +72,16 @@
                 <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.re2j</groupId>
+                <artifactId>re2j</artifactId>
+                <version>${re2j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

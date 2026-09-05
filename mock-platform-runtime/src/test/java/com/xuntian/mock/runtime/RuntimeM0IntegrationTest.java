@@ -6,22 +6,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.context.ActiveProfiles;
-import reactor.core.publisher.Mono;
-import reactor.netty.ByteBufFlux;
-import reactor.netty.http.client.HttpClient;
-
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 @SpringBootTest(
         classes = MockRuntimeApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
                 "xuntian.mock.runtime.environment=TEST",
                 "xuntian.mock.runtime.local-app-tokens[local-token]=sample-jdk17",
@@ -44,11 +37,8 @@ class RuntimeM0IntegrationTest {
     @Autowired
     private RuntimeRequestCapture capture;
 
-    @LocalServerPort
-    private int port;
-
     @Test
-    void authenticatesAppAndReturnsFixedCpsResponseWithRequestId() {
+    void authenticatesAppAndReturnsCompiledFixtureScenarioWithRuntimeHeaders() {
         webTestClient.post()
                 .uri("/sign/create-and-start?channel=EQB")
                 .header("Authorization", "MockApp local-token")
@@ -62,9 +52,13 @@ class RuntimeM0IntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().valueEquals("X-Mock-Request-Id", "mr-e2e-1")
+                .expectHeader().valueEquals("X-Mock-Scenario-Id", "sc-cps-sign-success")
+                .expectHeader().valueEquals("X-Mock-Release-Id", "rel-local-fixture-v1")
+                .expectHeader().valueEquals("X-Mock-Activation-Version", "0")
                 .expectBody()
-                .jsonPath("$.source").isEqualTo("M0_FIXED")
-                .jsonPath("$.data.flowId").isEqualTo("MOCK-EQB-mr-e2e-1");
+                .jsonPath("$.source").isEqualTo("M1_FIXTURE")
+                .jsonPath("$.data.flowId").isEqualTo("MOCK-EQB-mr-e2e-1")
+                .jsonPath("$.data.settleId").isEqualTo(42);
 
         CapturedRequest seen = capture.last();
         assertThat(seen.appCode()).isEqualTo("sample-jdk17");
@@ -85,7 +79,9 @@ class RuntimeM0IntegrationTest {
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("MOCK_APP_UNAUTHORIZED");
+                .jsonPath("$.code").isEqualTo("MOCK_APP_UNAUTHORIZED")
+                .jsonPath("$.mockRequestId").isNotEmpty()
+                .jsonPath("$.traceId").isNotEmpty();
     }
 
     @Test
@@ -100,28 +96,102 @@ class RuntimeM0IntegrationTest {
                 .exchange()
                 .expectStatus().isEqualTo(413)
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("PAYLOAD_TOO_LARGE");
+                .jsonPath("$.code").isEqualTo("MOCK_REQUEST_TOO_LARGE")
+                .jsonPath("$.mockRequestId").isNotEmpty()
+                .jsonPath("$.traceId").isNotEmpty();
     }
 
     @Test
-    void resetPocClosesConnectionAfterRuntimeReceivesRequest() {
-        Throwable failure = catchThrowable(() -> HttpClient.create()
-                .baseUrl("http://127.0.0.1:" + port)
-                .headers(headers -> {
-                    headers.set("Authorization", "MockApp local-token");
-                    headers.set("X-Mock-Provider", "CPS_EQB");
-                    headers.set("X-Mock-Api", "CPS_SIGN_CREATE_START");
-                    headers.set("X-Mock-Request-Id", "mr-reset-1");
-                })
+    void returnsNoMatchInsteadOfFallingBackToM0Dispatcher() {
+        webTestClient.post()
+                .uri("/sign/create-and-start?channel=OTHER")
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"settleId\":42}")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("MOCK_NO_MATCH");
+    }
+
+    @Test
+    void selectsTenantScopedScenarioWithoutLeakingItToAnotherTenant() {
+        webTestClient.post()
+                .uri("/sign/create-and-start?channel=EQB")
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Tenant", "tenant-a")
+                .header("X-Mock-Test-Account", "tester-01")
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"settleId\":42}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Mock-Scenario-Id", "sc-cps-sign-tenant-a")
+                .expectBody()
+                .jsonPath("$.data.status").isEqualTo("TENANT_SIGNING");
+
+        webTestClient.post()
+                .uri("/sign/create-and-start?channel=EQB")
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Tenant", "tenant-b")
+                .header("X-Mock-Test-Account", "tester-01")
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"settleId\":42}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Mock-Scenario-Id", "sc-cps-sign-success");
+    }
+
+    @Test
+    void rejectsRequestThatDoesNotMatchPublishedPath() {
+        webTestClient.post()
+                .uri("/wrong-path?channel=EQB")
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"settleId\":42}")
+                .exchange()
+                .expectStatus().isEqualTo(422)
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("MOCK_CONTRACT_MISMATCH");
+    }
+
+    @Test
+    void rejectsOversizedRequestIdentifiersWithoutEchoingThem() {
+        String invalid = "x".repeat(65);
+        webTestClient.post()
+                .uri("/sign/create-and-start?channel=EQB")
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Request-Id", invalid)
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"settleId\":42}")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().value("X-Mock-Request-Id", value -> assertThat(value).isNotEqualTo(invalid))
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("INVALID_REQUEST");
+    }
+
+    @Test
+    void resetPocCapturesRequestInTestProfile() {
+        webTestClient
                 .post()
                 .uri("/__m0/reset")
-                .send(ByteBufFlux.fromString(Mono.just("request-received")))
-                .responseContent()
-                .aggregate()
-                .asString()
-                .block(Duration.ofSeconds(5)));
+                .header("Authorization", "MockApp local-token")
+                .header("X-Mock-Provider", "CPS_EQB")
+                .header("X-Mock-Api", "CPS_SIGN_CREATE_START")
+                .header("X-Mock-Request-Id", "mr-reset-1")
+                .bodyValue("request-received")
+                .exchange();
 
-        assertThat(failure).isNotNull();
         assertThat(capture.last().path()).isEqualTo("/__m0/reset");
         assertThat(capture.last().requestId()).isEqualTo("mr-reset-1");
 

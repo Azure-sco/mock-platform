@@ -19,11 +19,11 @@ public final class PlatformController {
         Map<String, Object> health = new LinkedHashMap<>();
         health.put("service", "mock-platform-control");
         health.put("status", "UP");
-        health.put("phase", "M0");
+        health.put("phase", "M1");
         return ApiResponse.success(health, requestId(request));
     }
 
-    static String requestId(HttpServletRequest request) {
+    public static String requestId(HttpServletRequest request) {
         return (String) request.getAttribute(OperatorIdentityFilter.REQUEST_ID_ATTRIBUTE);
     }
 }

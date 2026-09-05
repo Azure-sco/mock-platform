@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: mock-platform-control
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     url: ${MOCK_MYSQL_URL}
     username: ${MOCK_MYSQL_USERNAME}
@@ -26,3 +30,14 @@ management:
       probes:
         enabled: true
       show-details: never
+
+mock:
+  callback:
+    retention-cleanup:
+      enabled: ${MOCK_CALLBACK_RETENTION_CLEANUP_ENABLED:true}
+      batch-size: ${MOCK_CALLBACK_RETENTION_CLEANUP_BATCH_SIZE:100}
+  request-log:
+    partition:
+      enabled: ${MOCK_REQUEST_LOG_PARTITION_ENABLED:true}
+      retention-days: ${MOCK_REQUEST_LOG_RETENTION_DAYS:7}
+      future-days: ${MOCK_REQUEST_LOG_FUTURE_PARTITION_DAYS:31}

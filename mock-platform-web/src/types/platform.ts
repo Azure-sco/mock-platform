@@ -9,7 +9,7 @@ export interface ApiResponse<T> {
 export interface PlatformHealth {
   service: string
   status: 'UP' | 'DOWN'
-  phase: 'M0'
+  phase: 'M0' | 'M1'
 }
 
 export interface DashboardSummary {

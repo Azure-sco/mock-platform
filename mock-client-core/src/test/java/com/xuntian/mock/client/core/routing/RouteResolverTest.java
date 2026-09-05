@@ -1,6 +1,7 @@
 package com.xuntian.mock.client.core.routing;
 
 import com.xuntian.mock.client.core.context.MockContext;
+import com.xuntian.mock.client.core.failure.MockConfigInvalidException;
 import com.xuntian.mock.client.core.model.MockMode;
 import com.xuntian.mock.client.core.model.UnavailablePolicy;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RouteResolverTest {
 
@@ -69,6 +71,26 @@ class RouteResolverTest {
                 .build();
 
         assertThat(resolver.resolve(snapshot, context("PROD", "OA", "CREATE")).mode()).isEqualTo(MockMode.REAL);
+    }
+
+    @Test
+    void rejectedNewerConfigurationFailsMockRoutesButPreservesRealRoutes() {
+        RoutingSnapshot snapshot = RoutingSnapshot.builder()
+                .configVersion(2)
+                .observedConfigVersion(3)
+                .mockConfigValid(false)
+                .appCode("sample-app")
+                .environment("TEST")
+                .runtimeBaseUri(URI.create("http://localhost:9080"))
+                .defaultRoute(RouteConfig.real())
+                .providerRoute("OA", RouteConfig.mock(UnavailablePolicy.FAST_FAIL))
+                .build();
+
+        assertThat(resolver.resolve(snapshot, context("TEST", "PAY", "CREATE")).mode())
+                .isEqualTo(MockMode.REAL);
+        assertThatThrownBy(() -> resolver.resolve(snapshot, context("TEST", "OA", "CREATE")))
+                .isInstanceOf(MockConfigInvalidException.class)
+                .hasMessageContaining("MOCK_CONFIG_INVALID");
     }
 
     private RoutingSnapshot snapshot(RouteConfig route) {

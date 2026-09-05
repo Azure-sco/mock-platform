@@ -61,6 +61,7 @@ public final class OperatorIdentityFilter extends OncePerRequestFilter {
 
     private boolean isPublicPath(String requestUri) {
         return "/api/platform/health".equals(requestUri)
+                || requestUri.startsWith("/api/internal/v1/")
                 || "/actuator".equals(requestUri)
                 || requestUri.startsWith("/actuator/");
     }

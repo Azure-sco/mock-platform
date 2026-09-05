@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class Jdk17FeignRoutingIntegrationTest {
 
@@ -118,7 +119,7 @@ class Jdk17FeignRoutingIntegrationTest {
         config.update(snapshot(config.current(), RouteConfig.builder(MockMode.MOCK)
                 .allowBusinessHeader("domain")
                 .build()));
-        assertThat(gateway.createAndStart(42L)).contains("M0_FIXED");
+        assertThat(gateway.createAndStart(42L)).contains("M1_FIXTURE");
 
         CapturedRequest mock = runtime.getBean(RuntimeRequestCapture.class).last();
         assertThat(mock.path()).isEqualTo("/sign/create-and-start");
@@ -129,8 +130,12 @@ class Jdk17FeignRoutingIntegrationTest {
         assertThat(mock.headerNames()).anyMatch(name -> name.equalsIgnoreCase("domain"));
         assertThat(mock.headerNames()).noneMatch(name -> isSensitive(name));
 
+        Throwable noMatch = catchThrowable(() -> gateway.createAndStartWithChannel(42L, "UNKNOWN"));
+        assertThat(noMatch).isNotNull();
+        assertThat(fakeReal.getBean(FakeRealRequestCapture.class).count()).isEqualTo(realCallsBeforeMock);
+
         CpsFilesRestGateway restGateway = sample.getBean(CpsFilesRestGateway.class);
-        assertThat(restGateway.querySignedFiles("REAL-EQB-M0")).contains("M0_FIXED");
+        assertThat(restGateway.querySignedFiles("REAL-EQB-M0")).contains("M1_FIXTURE");
         CapturedRequest restMock = runtime.getBean(RuntimeRequestCapture.class).last();
         assertThat(restMock.path()).isEqualTo("/flow/get-contract-files");
         assertThat(restMock.api()).isEqualTo("CPS_FLOW_FILES");
@@ -141,7 +146,7 @@ class Jdk17FeignRoutingIntegrationTest {
                 .allowBusinessHeader("domain")
                 .build();
         config.update(snapshot(config.current(), canary));
-        assertThat(gateway.createAndStart(43L)).contains("M0_FIXED");
+        assertThat(gateway.createAndStart(43L)).contains("M1_FIXTURE");
         assertThat(fakeReal.getBean(FakeRealRequestCapture.class).count()).isEqualTo(realCallsBeforeMock);
 
         config.update(snapshot(config.current(), RouteConfig.real()));
@@ -177,7 +182,7 @@ class Jdk17FeignRoutingIntegrationTest {
         assertThat(realCapture.last()).isSameAs(beforeReset);
         assertThat(realCapture.count()).isEqualTo(realCallsBeforeReset);
 
-        assertThat(gateway.createAndStart(2L)).contains("M0_FIXED");
+        assertThat(gateway.createAndStart(2L)).contains("M1_FIXTURE");
         assertThat(realCapture.count()).isEqualTo(realCallsBeforeReset);
     }
 

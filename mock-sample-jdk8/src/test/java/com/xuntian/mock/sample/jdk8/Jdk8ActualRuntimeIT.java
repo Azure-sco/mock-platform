@@ -22,6 +22,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,8 +60,8 @@ class Jdk8ActualRuntimeIT {
             OaNumberGateway feignGateway = sample.getBean(OaNumberGateway.class);
             String restResult = restGateway.createReview("SETTLE-ACTUAL-8");
             String feignResult = feignGateway.queryNumber("FLOW-ACTUAL-8");
-            assertThat(restResult).contains("M0_FIXED").contains("\"code\":\"200\"");
-            assertThat(feignResult).contains("M0_FIXED").contains("\"code\":\"200\"");
+            assertThat(restResult).contains("M1_FIXTURE").contains("\"code\":\"200\"");
+            assertThat(feignResult).contains("M1_FIXTURE").contains("\"code\":\"200\"");
 
             assertThat(restGateway.resetProbe("rest-received")).isEqualTo("runtime-received");
             assertThat(feignGateway.resetProbe("feign-received")).isEqualTo("runtime-received");
@@ -78,10 +81,15 @@ class Jdk8ActualRuntimeIT {
                 "mock-platform-runtime/target/mock-platform-runtime-0.1.0-SNAPSHOT-exec.jar");
         assertThat(runtimeJar).exists();
         Path log = projectRoot.resolve("mock-sample-jdk8/target/jdk8-actual-runtime-it.log");
-        return new ProcessBuilder(
-                java.toString(),
-                "-jar",
-                runtimeJar.toString(),
+        List<String> command = new ArrayList<>();
+        command.add(java.toString());
+        String unixDomainTmpDir = System.getProperty("jdk.net.unixdomain.tmpdir");
+        if (unixDomainTmpDir != null && !unixDomainTmpDir.trim().isEmpty()) {
+            command.add("-Djdk.net.unixdomain.tmpdir=" + unixDomainTmpDir);
+        }
+        command.add("-jar");
+        command.add(runtimeJar.toString());
+        command.addAll(Arrays.asList(
                 "--spring.profiles.active=test",
                 "--server.port=" + port,
                 "--spring.main.banner-mode=off",
@@ -94,7 +102,8 @@ class Jdk8ActualRuntimeIT {
                         + "org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration,"
                         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
                         + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
-                        + "org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration")
+                        + "org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration"));
+        return new ProcessBuilder(command)
                 .directory(projectRoot.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(log.toFile())

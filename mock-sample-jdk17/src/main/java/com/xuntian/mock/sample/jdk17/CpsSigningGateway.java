@@ -24,13 +24,22 @@ public class CpsSigningGateway {
 
     @ThirdPartyMock(provider = "CPS_EQB", api = "CPS_SIGN_CREATE_START")
     public String createAndStart(long settleId) {
+        return createAndStart(settleId, "EQB");
+    }
+
+    @ThirdPartyMock(provider = "CPS_EQB", api = "CPS_SIGN_CREATE_START")
+    public String createAndStartWithChannel(long settleId, String channel) {
+        return createAndStart(settleId, channel);
+    }
+
+    private String createAndStart(long settleId, String channel) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("templateType", "file");
         body.put("fileName", "settlement.pdf");
         body.put("settleId", settleId);
         body.put("autoFinish", true);
         return cpsFeignApi.createAndStart(
-                "EQB", domain, REAL_AUTHORIZATION, REAL_COOKIE, REAL_SIGNATURE, body);
+                channel, domain, REAL_AUTHORIZATION, REAL_COOKIE, REAL_SIGNATURE, body);
     }
 
     @ThirdPartyMock(provider = "CPS_EQB", api = "CPS_SIGN_CREATE_START")

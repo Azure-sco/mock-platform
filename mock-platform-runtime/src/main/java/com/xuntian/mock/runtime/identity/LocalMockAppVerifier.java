@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 public final class LocalMockAppVerifier implements MockAppVerifier {
 
     private static final String PREFIX = "MockApp ";
+    private static final String TENANT_HEADER = "X-Mock-Tenant";
+    private static final String TEST_ACCOUNT_HEADER = "X-Mock-Test-Account";
     private final RuntimeProperties properties;
 
     public LocalMockAppVerifier(RuntimeProperties properties) {
@@ -29,7 +31,22 @@ public final class LocalMockAppVerifier implements MockAppVerifier {
         if (appCode == null) {
             throw unauthorized();
         }
-        return new RuntimeIdentity(appCode, properties.getEnvironment());
+        return new RuntimeIdentity(
+                appCode,
+                properties.getEnvironment(),
+                optionalContext(headers, TENANT_HEADER),
+                optionalContext(headers, TEST_ACCOUNT_HEADER));
+    }
+
+    private String optionalContext(HttpHeaders headers, String name) {
+        String value = headers.getFirst(name);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.length() > 128 || !value.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")) {
+            throw new PlatformException(ErrorCode.MOCK_CONTEXT_INVALID, name + " is invalid");
+        }
+        return value;
     }
 
     private PlatformException unauthorized() {

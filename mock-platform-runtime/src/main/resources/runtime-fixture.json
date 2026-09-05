@@ -1,0 +1,167 @@
+{
+  "releaseId": "rel-local-fixture-v1",
+  "environment": "TEST",
+  "apps": ["sample-jdk8", "sample-jdk17"],
+  "createdAt": "2026-08-31T00:00:00Z",
+  "contracts": [
+    {
+      "provider": "OA",
+      "api": "OA_SETTLE_CREATE",
+      "method": "POST",
+      "path": "/api/km-review/kmReviewRestService/addReviewNew",
+      "contentTypes": ["multipart/form-data"],
+      "responseSchema": {
+        "type": "object",
+        "required": ["code", "message", "source", "data"]
+      }
+    },
+    {
+      "provider": "OA",
+      "api": "OA_NUMBER_QUERY",
+      "method": "GET",
+      "path": "/api/tcl-cpms/cpmsAuditRestService/getAuditInfosNew",
+      "contentTypes": [],
+      "responseSchema": {
+        "type": "object",
+        "required": ["code", "message", "source", "data"]
+      }
+    },
+    {
+      "provider": "CPS_EQB",
+      "api": "CPS_SIGN_CREATE_START",
+      "method": "POST",
+      "path": "/sign/create-and-start",
+      "contentTypes": ["application/json"],
+      "requestSchema": {
+        "type": "object",
+        "required": ["settleId"],
+        "properties": {
+          "settleId": {"type": "integer"},
+          "autoFinish": {"type": "boolean"}
+        }
+      },
+      "responseSchema": {
+        "type": "object",
+        "required": ["code", "message", "source", "data"]
+      }
+    },
+    {
+      "provider": "CPS_EQB",
+      "api": "CPS_FLOW_FILES",
+      "method": "POST",
+      "path": "/flow/get-contract-files",
+      "contentTypes": ["application/json"],
+      "requestSchema": {
+        "type": "object",
+        "required": ["seqNo"],
+        "properties": {
+          "seqNo": {"type": "string"}
+        }
+      },
+      "responseSchema": {
+        "type": "object",
+        "required": ["code", "message", "source", "data"]
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "scenarioId": "sc-oa-settle-success",
+      "scenarioVersionId": "scv-oa-settle-success-1",
+      "scenarioCode": "oa-settle-success",
+      "provider": "OA",
+      "api": "OA_SETTLE_CREATE",
+      "priority": 100,
+      "scope": {
+        "environments": ["TEST"],
+        "apps": ["sample-jdk8", "sample-jdk17"]
+      },
+      "matchRules": [],
+      "response": {
+        "httpStatus": 200,
+        "headers": {"Content-Type": "application/json"},
+        "bodyTemplate": "{\"code\":\"200\",\"message\":\"success\",\"source\":\"M1_FIXTURE\",\"data\":{\"flowNo\":\"MOCK-OA-${mockRequestId}\",\"status\":\"SUBMITTED\"}}"
+      }
+    },
+    {
+      "scenarioId": "sc-oa-number-success",
+      "scenarioVersionId": "scv-oa-number-success-1",
+      "scenarioCode": "oa-number-success",
+      "provider": "OA",
+      "api": "OA_NUMBER_QUERY",
+      "priority": 100,
+      "scope": {
+        "environments": ["TEST"],
+        "apps": ["sample-jdk8", "sample-jdk17"]
+      },
+      "matchRules": [],
+      "response": {
+        "httpStatus": 200,
+        "headers": {"Content-Type": "application/json"},
+        "bodyTemplate": "{\"code\":\"200\",\"message\":\"success\",\"source\":\"M1_FIXTURE\",\"data\":{\"flowNo\":\"MOCK-OA-${mockRequestId}\",\"oaNumber\":\"OA-M1-0001\"}}"
+      }
+    },
+    {
+      "scenarioId": "sc-cps-sign-tenant-a",
+      "scenarioVersionId": "scv-cps-sign-tenant-a-1",
+      "scenarioCode": "cps-sign-tenant-a",
+      "provider": "CPS_EQB",
+      "api": "CPS_SIGN_CREATE_START",
+      "priority": 200,
+      "scope": {
+        "environments": ["TEST"],
+        "apps": ["sample-jdk17"],
+        "tenants": ["tenant-a"],
+        "testAccounts": ["tester-01"]
+      },
+      "matchRules": [
+        {"type": "QUERY", "operator": "EQ", "key": "channel", "value": "EQB", "caseSensitive": true}
+      ],
+      "response": {
+        "httpStatus": 200,
+        "headers": {"Content-Type": "application/json"},
+        "bodyTemplate": "{\"code\":\"0\",\"message\":\"success\",\"source\":\"M1_FIXTURE\",\"data\":{\"flowId\":\"MOCK-EQB-${mockRequestId}\",\"settleId\":${json:request.body.$.settleId},\"status\":\"TENANT_SIGNING\"}}"
+      }
+    },
+    {
+      "scenarioId": "sc-cps-sign-success",
+      "scenarioVersionId": "scv-cps-sign-success-1",
+      "scenarioCode": "cps-sign-success",
+      "provider": "CPS_EQB",
+      "api": "CPS_SIGN_CREATE_START",
+      "priority": 100,
+      "scope": {
+        "environments": ["TEST"],
+        "apps": ["sample-jdk8", "sample-jdk17"]
+      },
+      "matchRules": [
+        {"type": "QUERY", "operator": "EQ", "key": "channel", "value": "EQB", "caseSensitive": true}
+      ],
+      "response": {
+        "httpStatus": 200,
+        "headers": {"Content-Type": "application/json"},
+        "bodyTemplate": "{\"code\":\"0\",\"message\":\"success\",\"source\":\"M1_FIXTURE\",\"data\":{\"flowId\":\"MOCK-EQB-${mockRequestId}\",\"settleId\":${json:request.body.$.settleId},\"status\":\"SIGNING\",\"createdAt\":\"${now.iso}\",\"renderUuid\":\"${uuid}\"}}"
+      }
+    },
+    {
+      "scenarioId": "sc-cps-files-signed",
+      "scenarioVersionId": "scv-cps-files-signed-1",
+      "scenarioCode": "cps-files-signed",
+      "provider": "CPS_EQB",
+      "api": "CPS_FLOW_FILES",
+      "priority": 100,
+      "scope": {
+        "environments": ["TEST"],
+        "apps": ["sample-jdk8", "sample-jdk17"]
+      },
+      "matchRules": [
+        {"type": "JSON_PATH", "operator": "EQ", "key": "$.flowState", "value": "SIGNED", "caseSensitive": true}
+      ],
+      "response": {
+        "httpStatus": 200,
+        "headers": {"Content-Type": "application/json"},
+        "bodyTemplate": "{\"code\":\"0\",\"message\":\"success\",\"source\":\"M1_FIXTURE\",\"data\":{\"flowId\":\"${request.body.$.seqNo}\",\"status\":\"SIGNED\",\"files\":[{\"fileId\":\"M1-FILE-1\",\"fileName\":\"mock-signed.pdf\"}]}}"
+      }
+    }
+  ]
+}

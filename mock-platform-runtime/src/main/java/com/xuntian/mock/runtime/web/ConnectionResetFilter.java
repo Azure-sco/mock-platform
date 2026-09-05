@@ -8,6 +8,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Component
+@Profile({"local", "test"})
 public final class ConnectionResetFilter implements WebFilter, Ordered {
 
     private static final String PATH = "/__m0/reset";

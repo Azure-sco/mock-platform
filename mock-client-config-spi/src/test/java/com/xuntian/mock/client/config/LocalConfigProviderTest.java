@@ -38,6 +38,39 @@ class LocalConfigProviderTest {
         assertThat(provider.current()).isSameAs(initial);
     }
 
+    @Test
+    void invalidationKeepsRoutingAndCanRecoverWithTheObservedVersion() {
+        RoutingSnapshot initial = snapshot(2, RouteConfig.real());
+        LocalConfigProvider provider = new LocalConfigProvider(initial);
+
+        assertThat(provider.markInvalid(3)).isTrue();
+        assertThat(provider.current().configVersion()).isEqualTo(2);
+        assertThat(provider.current().observedConfigVersion()).isEqualTo(3);
+        assertThat(provider.current().mockConfigValid()).isFalse();
+
+        RoutingSnapshot recovered = snapshot(3, RouteConfig.real());
+        provider.update(recovered);
+
+        assertThat(provider.current()).isSameAs(recovered);
+        assertThat(provider.current().mockConfigValid()).isTrue();
+    }
+
+    @Test
+    void listenerFailureDoesNotUndoCommittedSnapshotOrSkipOtherListeners() {
+        LocalConfigProvider provider = new LocalConfigProvider(snapshot(1, RouteConfig.real()));
+        List<Long> observedVersions = new ArrayList<Long>();
+        provider.registerListener((previous, current) -> {
+            throw new IllegalStateException("listener failed");
+        });
+        provider.registerListener((previous, current) -> observedVersions.add(current.configVersion()));
+
+        provider.update(snapshot(2, RouteConfig.real()));
+
+        assertThat(provider.current().configVersion()).isEqualTo(2);
+        assertThat(provider.listenerFailureCount()).isEqualTo(1);
+        assertThat(observedVersions).containsExactly(2L);
+    }
+
     private RoutingSnapshot snapshot(long version, RouteConfig route) {
         return RoutingSnapshot.builder()
                 .configVersion(version)

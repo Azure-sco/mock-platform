@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public final class ControlExceptionHandler {
@@ -20,6 +21,13 @@ public final class ControlExceptionHandler {
             PlatformException failure,
             HttpServletRequest request) {
         return failure(failure.errorCode(), failure.getMessage(), request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> uploadTooLarge(
+            MaxUploadSizeExceededException failure,
+            HttpServletRequest request) {
+        return failure(ErrorCode.PAYLOAD_TOO_LARGE, "Contract file exceeds 5 MB", request);
     }
 
     @ExceptionHandler(Exception.class)

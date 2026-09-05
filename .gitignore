@@ -1,4 +1,6 @@
 target/
+/build/
+/.m2/
 *.log
 .idea/
 .vscode/

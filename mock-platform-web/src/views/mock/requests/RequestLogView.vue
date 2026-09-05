@@ -148,7 +148,7 @@ onMounted(() => loadLogs())
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M1 · REQUEST OBSERVABILITY</p>
+        <p class="eyebrow">REQUEST OBSERVABILITY</p>
         <h2>请求记录</h2>
         <p>查询 Runtime 已持久化的脱敏请求摘要；该列表不是幂等账本或原始报文存储。</p>
       </div>

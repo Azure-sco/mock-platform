@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
+import JsonEditor from '../../../components/JsonEditor.vue'
 import {
   createSecurityPolicy,
   getSecurityPolicies,
@@ -21,6 +22,7 @@ import type {
   SecurityPolicyType,
   SecurityPolicyVersion,
 } from '../../../types/admin'
+import { SubmissionCoordinator } from '../../../utils/requestControl'
 
 const policyTypes: SecurityPolicyType[] = [
   'APP_ACL',
@@ -36,6 +38,7 @@ const session = useSessionStore()
 const canPublish = computed(() => session.hasRole('MOCK_ADMIN'))
 const loading = ref(false)
 const actionId = ref<number | null>(null)
+const saving = ref(false)
 const policies = ref<SecurityPolicy[]>([])
 const versions = ref<SecurityPolicyVersion[]>([])
 const bindings = ref<SecurityPolicyBinding[]>([])
@@ -49,6 +52,7 @@ const draft = reactive({
   sourceAuditRef: 'local-m2-acceptance',
   config: '{\n  "environment": "TEST",\n  "appCode": "sample-jdk17",\n  "providers": []\n}',
 })
+const submissions = new SubmissionCoordinator()
 
 function parseJson(value: string): JsonValue {
   try {
@@ -90,6 +94,7 @@ async function openVersions(row: SecurityPolicy) {
 }
 
 async function submitCreate() {
+  if (saving.value) return
   let payload: SecurityPolicyMutation
   try {
     payload = {
@@ -106,13 +111,21 @@ async function submitCreate() {
     ElMessage.warning('Scope Key 不能为空')
     return
   }
+  const attempt = submissions.begin('policy:create', JSON.stringify(payload))
+  if (!attempt) return
+  saving.value = true
+  let succeeded = false
   try {
-    await createSecurityPolicy(payload)
+    await createSecurityPolicy(payload, attempt.key)
+    succeeded = true
     ElMessage.success('安全策略草稿已创建')
     createVisible.value = false
     await load()
   } catch {
     if (!errors.latest) errors.capture({ code: 'SECURITY_POLICY_CREATE_FAILED', message: '安全策略创建失败' })
+  } finally {
+    saving.value = false
+    attempt.finish(succeeded)
   }
 }
 
@@ -125,20 +138,26 @@ function bindingForPolicy(policy: SecurityPolicy) {
 }
 
 async function runAction(version: SecurityPolicyVersion, action: 'validate' | 'submit' | 'publish') {
+  if (actionId.value) return
+  const operation = `policy:${action}:${version.id}`
+  const attempt = submissions.begin(operation)
+  if (!attempt) return
   actionId.value = version.id
+  let succeeded = false
   errors.clear()
   try {
     if (action === 'validate') {
-      await validateSecurityPolicyVersion(version.id)
+      await validateSecurityPolicyVersion(version.id, attempt.key)
       ElMessage.success('策略校验通过')
     } else if (action === 'submit') {
-      await submitSecurityPolicyApproval(version.id, version.policyType, 1)
+      await submitSecurityPolicyApproval(version.id, version.policyType, 1, attempt.key)
       ElMessage.success('策略已提交 checksum 审批')
     } else {
       await ElMessageBox.confirm('确认发布该不可变策略版本？', '策略发布', { type: 'warning' })
-      await publishSecurityPolicyVersion(version.id, bindingFor(version)?.bindingVersion ?? 0)
+      await publishSecurityPolicyVersion(version.id, bindingFor(version)?.bindingVersion ?? 0, attempt.key)
       ElMessage.success('策略已发布，Binding/消费者生效状态将独立更新')
     }
+    succeeded = true
     if (selected.value) await openVersions(selected.value)
     await load()
   } catch (failure) {
@@ -147,6 +166,7 @@ async function runAction(version: SecurityPolicyVersion, action: 'validate' | 's
     }
   } finally {
     actionId.value = null
+    attempt.finish(succeeded)
   }
 }
 
@@ -164,7 +184,7 @@ onMounted(load)
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M2 · SECURITY POLICY</p>
+        <p class="eyebrow">SECURITY POLICY</p>
         <h2>安全策略</h2>
         <p>高风险策略必须经过不可变版本、checksum 审批和签名发布；PUBLISHED、BOUND、EFFECTIVE 分开展示。</p>
       </div>
@@ -210,9 +230,9 @@ onMounted(load)
         <el-table-column prop="createdAt" label="创建时间" min-width="170" />
         <el-table-column label="操作" width="185">
           <template #default="{ row }">
-            <el-button link type="primary" :disabled="!canPublish || row.status !== 'DRAFT'" @click="runAction(row, 'validate')">校验</el-button>
-            <el-button link type="primary" :disabled="!canPublish || row.status !== 'VALIDATED'" @click="runAction(row, 'submit')">审批</el-button>
-            <el-button link type="primary" :disabled="!canPublish || row.status !== 'APPROVED'" @click="runAction(row, 'publish')">发布</el-button>
+            <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'DRAFT' || Boolean(actionId)" @click="runAction(row, 'validate')">校验</el-button>
+            <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'VALIDATED' || Boolean(actionId)" @click="runAction(row, 'submit')">审批</el-button>
+            <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'APPROVED' || Boolean(actionId)" @click="runAction(row, 'publish')">发布</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -224,10 +244,10 @@ onMounted(load)
           <el-form-item label="策略类型" required><el-select v-model="draft.policyType"><el-option v-for="type in policyTypes" :key="type" :label="type" :value="type" /></el-select></el-form-item>
           <el-form-item label="Scope Key" required><el-input v-model="draft.scopeKey" /></el-form-item>
         </div>
-        <el-form-item label="配置 JSON" required><el-input v-model="draft.config" type="textarea" :rows="13" spellcheck="false" /></el-form-item>
+        <el-form-item label="配置 JSON" required><JsonEditor v-model="draft.config" :rows="13" /></el-form-item>
         <el-form-item label="外部审计引用"><el-input v-model="draft.sourceAuditRef" /></el-form-item>
       </el-form>
-      <template #footer><el-button @click="createVisible = false">取消</el-button><el-button type="primary" :disabled="!canPublish" @click="submitCreate">创建草稿</el-button></template>
+      <template #footer><el-button @click="createVisible = false">取消</el-button><el-button type="primary" :loading="saving" :disabled="!canPublish" @click="submitCreate">创建草稿</el-button></template>
     </el-dialog>
   </section>
 </template>

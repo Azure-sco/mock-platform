@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+export type Environment = 'TEST' | 'UAT'
+
 export const useSessionStore = defineStore('session', () => {
   const operatorId = ref('local-admin')
   const displayName = ref('本地管理员')
@@ -39,7 +41,7 @@ export const useSessionStore = defineStore('session', () => {
     'mock:release:rollback',
     'mock:request:view',
   ])
-  const environment = ref('TEST')
+  const environment = ref<Environment>('TEST')
   const sidebarCollapsed = ref(false)
 
   function toggleSidebar() {

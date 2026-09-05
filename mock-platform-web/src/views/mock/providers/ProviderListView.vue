@@ -7,6 +7,7 @@ import { createProvider, getProviders, updateProvider } from '../../../api/admin
 import { useErrorStore } from '../../../stores/errors'
 import { useSessionStore } from '../../../stores/session'
 import type { Provider, ProviderMutation, ResourceStatus } from '../../../types/admin'
+import { SubmissionCoordinator } from '../../../utils/requestControl'
 
 const router = useRouter()
 const errors = useErrorStore()
@@ -22,6 +23,7 @@ const filters = reactive<{ keyword: string; status: '' | ResourceStatus }>({ key
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive<ProviderMutation>(emptyForm())
+const submissions = new SubmissionCoordinator()
 
 function emptyForm(): ProviderMutation {
   return { providerCode: '', providerName: '', owner: '', status: 'ENABLED' }
@@ -65,11 +67,16 @@ function openEdit(provider: Provider) {
 }
 
 async function submit() {
+  if (saving.value) return
   if (!form.providerCode.trim() || !form.providerName.trim() || !form.owner.trim()) {
     ElMessage.warning('请完整填写 Provider Code、名称和负责人')
     return
   }
+  const operation = editingId.value ? `provider:update:${editingId.value}` : `provider:create:${form.providerCode}`
+  const attempt = submissions.begin(operation, JSON.stringify(form))
+  if (!attempt) return
   saving.value = true
+  let succeeded = false
   errors.clear()
   try {
     const payload: ProviderMutation = {
@@ -83,18 +90,20 @@ async function submit() {
         providerName: payload.providerName,
         owner: payload.owner,
         status: payload.status,
-      })
+      }, attempt.key)
       ElMessage.success('Provider 已更新')
     } else {
-      await createProvider(payload)
+      await createProvider(payload, attempt.key)
       ElMessage.success('Provider 已创建')
     }
+    succeeded = true
     dialogVisible.value = false
     await loadProviders()
   } catch {
     if (!errors.latest) errors.capture({ code: 'PROVIDER_SAVE_FAILED', message: 'Provider 保存失败' })
   } finally {
     saving.value = false
+    attempt.finish(succeeded)
   }
 }
 
@@ -122,7 +131,7 @@ onMounted(() => loadProviders())
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M1 · RESOURCE CATALOG</p>
+        <p class="eyebrow">RESOURCE CATALOG</p>
         <h2>Provider 管理</h2>
         <p>维护第三方服务的稳定身份；环境地址和高风险策略不在此处直接编辑。</p>
       </div>

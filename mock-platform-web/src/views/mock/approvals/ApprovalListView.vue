@@ -6,6 +6,7 @@ import { decideApproval, getApprovals } from '../../../api/admin'
 import { useErrorStore } from '../../../stores/errors'
 import { useSessionStore } from '../../../stores/session'
 import type { ApprovalRequest } from '../../../types/admin'
+import { SubmissionCoordinator } from '../../../utils/requestControl'
 
 const errors = useErrorStore()
 const session = useSessionStore()
@@ -13,6 +14,7 @@ const canApprove = computed(() => session.hasRole('MOCK_ADMIN'))
 const loading = ref(false)
 const actionId = ref<number | null>(null)
 const approvals = ref<ApprovalRequest[]>([])
+const submissions = new SubmissionCoordinator()
 
 async function load() {
   loading.value = true
@@ -27,6 +29,7 @@ async function load() {
 }
 
 async function decide(row: ApprovalRequest, decision: 'approve' | 'reject') {
+  if (actionId.value) return
   let comment = ''
   try {
     const result = await ElMessageBox.prompt(
@@ -44,16 +47,21 @@ async function decide(row: ApprovalRequest, decision: 'approve' | 'reject') {
     return
   }
 
+  const attempt = submissions.begin(`approval:${decision}:${row.id}`)
+  if (!attempt) return
   actionId.value = row.id
+  let succeeded = false
   errors.clear()
   try {
-    await decideApproval(row.id, decision, { comment: comment || undefined })
+    await decideApproval(row.id, decision, { comment: comment || undefined }, attempt.key)
+    succeeded = true
     ElMessage.success(decision === 'approve' ? '审批已通过' : '审批已拒绝')
     await load()
   } catch {
     if (!errors.latest) errors.capture({ code: 'APPROVAL_DECISION_FAILED', message: '审批操作失败' })
   } finally {
     actionId.value = null
+    attempt.finish(succeeded)
   }
 }
 
@@ -70,7 +78,7 @@ onMounted(load)
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M2 · CHECKSUM APPROVAL</p>
+        <p class="eyebrow">CHECKSUM APPROVAL</p>
         <h2>审批中心</h2>
         <p>审批绑定对象 checksum；同一评审人不重复计数，拒绝会终止当前审批。</p>
       </div>

@@ -19,6 +19,12 @@ export interface DashboardSummary {
   scenarios: number
   releases: number
   requests: number
+  hitRate: number
+  noMatchRequests: number
+  p95DurationMs: number
+  callbackSuccessRate: number
+  callbackRetries: number
 }
 
 export type HealthState = 'UP' | 'DOWN' | 'UNKNOWN'
+export type HealthCheckStatus = 'IDLE' | 'CHECKING' | 'SUCCESS' | 'ERROR'

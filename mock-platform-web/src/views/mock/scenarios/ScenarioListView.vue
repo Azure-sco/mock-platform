@@ -2,9 +2,11 @@
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
+import JsonEditor from '../../../components/JsonEditor.vue'
 import {
   createScenario,
   createScenarioVersion,
+  getContracts,
   getProviderApis,
   getProviders,
   getScenario,
@@ -22,20 +24,28 @@ import type {
   ScenarioMutation,
   ScenarioVersion,
   ScenarioVersionMutation,
+  ContractVersion,
 } from '../../../types/admin'
+import { LatestRequestGate, SubmissionCoordinator } from '../../../utils/requestControl'
 
 const errors = useErrorStore()
 const session = useSessionStore()
 const canEdit = computed(() => session.hasRole('MOCK_ADMIN'))
 const loading = ref(false)
 const actionId = ref<number | null>(null)
+const savingScenario = ref(false)
+const savingVersion = ref(false)
 const scenarios = ref<Scenario[]>([])
 const providers = ref<Provider[]>([])
 const apis = ref<MockApi[]>([])
+const contractVersions = shallowRef<ContractVersion[]>([])
 const selected = shallowRef<Scenario | null>(null)
 const versions = shallowRef<ScenarioVersion[]>([])
 const createVisible = ref(false)
 const versionVisible = ref(false)
+const apiGate = new LatestRequestGate()
+const contractGate = new LatestRequestGate()
+const submissions = new SubmissionCoordinator()
 
 const scenarioDraft = reactive<ScenarioMutation>({
   scenarioCode: '',
@@ -82,27 +92,51 @@ async function load() {
 }
 
 async function loadApis(providerId: number) {
+  const request = apiGate.next()
   scenarioDraft.apiId = 0
+  apis.value = []
+  contractVersions.value = []
+  contractGate.invalidate()
   if (!providerId) {
-    apis.value = []
     return
   }
-  apis.value = (await getProviderApis(providerId, { page: 1, size: 200 })).records
+  const result = await getProviderApis(providerId, { page: 1, size: 200 })
+  if (apiGate.isLatest(request)) apis.value = result.records
+}
+
+async function loadContractVersions(apiId: number) {
+  const request = contractGate.next()
+  contractVersions.value = []
+  versionDraft.contractVersionId = 0
+  if (!apiId) return
+  const result = await getContracts(apiId)
+  if (contractGate.isLatest(request)) {
+    contractVersions.value = result.filter((version) => version.status === 'PUBLISHED')
+  }
 }
 
 async function submitScenario() {
+  if (savingScenario.value) return
   if (!scenarioDraft.scenarioCode || !scenarioDraft.scenarioName || !scenarioDraft.providerId || !scenarioDraft.apiId) {
     ElMessage.warning('请完整填写场景基础信息')
     return
   }
+  const attempt = submissions.begin('scenario:create', JSON.stringify(scenarioDraft))
+  if (!attempt) return
+  savingScenario.value = true
+  let succeeded = false
   try {
-    await createScenario({ ...scenarioDraft })
+    await createScenario({ ...scenarioDraft }, attempt.key)
+    succeeded = true
     ElMessage.success('场景已创建')
     createVisible.value = false
     Object.assign(scenarioDraft, { scenarioCode: '', scenarioName: '', providerId: 0, apiId: 0 })
     await load()
   } catch {
     if (!errors.latest) errors.capture({ code: 'SCENARIO_CREATE_FAILED', message: '场景创建失败' })
+  } finally {
+    savingScenario.value = false
+    attempt.finish(succeeded)
   }
 }
 
@@ -113,8 +147,8 @@ async function openVersions(row: Scenario, create = false) {
     const detail = await getScenario(row.id)
     selected.value = detail
     versions.value = detail.versions ?? []
+    if (create) await loadContractVersions(detail.apiId)
     versionVisible.value = true
-    if (create) versionDraft.contractVersionId = 0
   } catch {
     if (!errors.latest) errors.capture({ code: 'SCENARIO_DETAIL_FAILED', message: '场景版本加载失败' })
   } finally {
@@ -123,6 +157,7 @@ async function openVersions(row: Scenario, create = false) {
 }
 
 async function submitVersion() {
+  if (savingVersion.value) return
   if (!selected.value || versionDraft.contractVersionId <= 0) {
     ElMessage.warning('Contract Version ID 必须大于 0')
     return
@@ -146,29 +181,42 @@ async function submitVersion() {
     ElMessage.warning(failure instanceof Error ? failure.message : '场景 JSON 解析失败')
     return
   }
+  const attempt = submissions.begin(`scenario-version:create:${selected.value.id}`, JSON.stringify(payload))
+  if (!attempt) return
+  savingVersion.value = true
+  let succeeded = false
   try {
-    await createScenarioVersion(selected.value.id, payload)
+    await createScenarioVersion(selected.value.id, payload, attempt.key)
+    succeeded = true
     ElMessage.success('场景版本草稿已创建')
     await openVersions(selected.value)
   } catch {
     if (!errors.latest) errors.capture({ code: 'SCENARIO_VERSION_CREATE_FAILED', message: '场景版本创建失败' })
+  } finally {
+    savingVersion.value = false
+    attempt.finish(succeeded)
   }
 }
 
 async function runVersionAction(version: ScenarioVersion, action: 'validate' | 'submit') {
+  if (actionId.value) return
+  const attempt = submissions.begin(`scenario-version:${action}:${version.id}`)
+  if (!attempt) return
   actionId.value = version.id
+  let succeeded = false
   errors.clear()
   try {
     if (action === 'validate') {
-      await validateScenarioVersion(version.id)
+      await validateScenarioVersion(version.id, attempt.key)
       ElMessage.success(`场景 v${version.versionNo} 校验通过`)
     } else {
       await ElMessageBox.confirm('提交后审批将固定当前 checksum，确认继续？', '提交审批', {
         type: 'warning',
       })
-      await submitScenarioApproval(version.id)
+      await submitScenarioApproval(version.id, attempt.key)
       ElMessage.success(`场景 v${version.versionNo} 已提交审批`)
     }
+    succeeded = true
     if (selected.value) await openVersions(selected.value)
   } catch (failure) {
     if (failure !== 'cancel' && !errors.latest) {
@@ -176,6 +224,7 @@ async function runVersionAction(version: ScenarioVersion, action: 'validate' | '
     }
   } finally {
     actionId.value = null
+    attempt.finish(succeeded)
   }
 }
 
@@ -193,7 +242,7 @@ onMounted(load)
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M2 · VERSIONED SCENARIO</p>
+        <p class="eyebrow">VERSIONED SCENARIO</p>
         <h2>场景管理</h2>
         <p>场景内容按版本校验与审批；Runtime 只消费 Release 固定的发布版本。</p>
       </div>
@@ -229,19 +278,19 @@ onMounted(load)
           <el-form-item label="场景名称" required><el-input v-model="scenarioDraft.scenarioName" /></el-form-item>
           <el-form-item label="Provider" required>
             <el-select v-model="scenarioDraft.providerId" filterable @change="loadApis">
-              <el-option v-for="provider in providers" :key="provider.id" :label="provider.providerCode" :value="provider.id" />
+              <el-option v-for="provider in providers" :key="provider.id" :label="`${provider.providerCode} · ${provider.providerName} · ${provider.status}`" :value="provider.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="API" required>
             <el-select v-model="scenarioDraft.apiId" filterable>
-              <el-option v-for="api in apis" :key="api.id" :label="api.apiCode" :value="api.id" />
+              <el-option v-for="api in apis" :key="api.id" :label="`${api.apiCode} · ${api.apiName} · ${api.status}`" :value="api.id" />
             </el-select>
           </el-form-item>
         </div>
       </el-form>
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!canEdit" @click="submitScenario">创建</el-button>
+        <el-button type="primary" :loading="savingScenario" :disabled="!canEdit" @click="submitScenario">创建</el-button>
       </template>
     </el-dialog>
 
@@ -250,20 +299,27 @@ onMounted(load)
       <el-card class="filter-card" shadow="never">
         <el-form label-position="top">
           <div class="form-grid">
-            <el-form-item label="Contract Version ID" required><el-input-number v-model="versionDraft.contractVersionId" :min="0" /></el-form-item>
+            <el-form-item label="Contract Version" required>
+              <el-select v-model="versionDraft.contractVersionId" filterable placeholder="选择已发布契约版本">
+                <el-option v-for="version in contractVersions" :key="version.id" :label="`v${version.versionNo} · ${version.status} · ${version.checksum.slice(0, 10)}`" :value="version.id" />
+              </el-select>
+            </el-form-item>
             <el-form-item label="Flow Definition Version ID（可选）"><el-input v-model="versionDraft.flowDefinitionVersionId" /></el-form-item>
             <el-form-item label="优先级"><el-input-number v-model="versionDraft.priority" :min="0" :max="100000" /></el-form-item>
             <el-form-item label="生效区间">
-              <div class="inline-fields"><el-input v-model="versionDraft.effectiveFrom" placeholder="effectiveFrom ISO-8601" /><el-input v-model="versionDraft.effectiveTo" placeholder="effectiveTo ISO-8601" /></div>
+              <div class="inline-fields">
+                <el-date-picker v-model="versionDraft.effectiveFrom" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" placeholder="开始时间" />
+                <el-date-picker v-model="versionDraft.effectiveTo" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" placeholder="结束时间" />
+              </div>
             </el-form-item>
           </div>
           <div class="schema-grid">
-            <el-form-item label="Scope JSON"><el-input v-model="versionDraft.scope" type="textarea" :rows="8" spellcheck="false" /></el-form-item>
-            <el-form-item label="Match Rules JSON"><el-input v-model="versionDraft.matchRules" type="textarea" :rows="8" spellcheck="false" /></el-form-item>
-            <el-form-item label="Response JSON"><el-input v-model="versionDraft.response" type="textarea" :rows="9" spellcheck="false" /></el-form-item>
-            <el-form-item label="Callbacks JSON"><el-input v-model="versionDraft.callbacks" type="textarea" :rows="9" spellcheck="false" /></el-form-item>
+            <el-form-item label="Scope JSON"><JsonEditor v-model="versionDraft.scope" :rows="8" /></el-form-item>
+            <el-form-item label="Match Rules JSON"><JsonEditor v-model="versionDraft.matchRules" :rows="8" /></el-form-item>
+            <el-form-item label="Response JSON"><JsonEditor v-model="versionDraft.response" :rows="9" /></el-form-item>
+            <el-form-item label="Callbacks JSON"><JsonEditor v-model="versionDraft.callbacks" :rows="9" /></el-form-item>
           </div>
-          <el-button type="primary" :disabled="!canEdit" @click="submitVersion">创建版本草稿</el-button>
+          <el-button type="primary" :loading="savingVersion" :disabled="!canEdit" @click="submitVersion">创建版本草稿</el-button>
         </el-form>
       </el-card>
 
@@ -274,8 +330,8 @@ onMounted(load)
         <el-table-column prop="checksum" label="Checksum" min-width="220" show-overflow-tooltip />
         <el-table-column label="操作" width="150">
           <template #default="{ row }">
-            <el-button link type="primary" :disabled="!canEdit || row.status !== 'DRAFT'" @click="runVersionAction(row, 'validate')">校验</el-button>
-            <el-button link type="primary" :disabled="!canEdit || row.status !== 'VALIDATED'" @click="runVersionAction(row, 'submit')">审批</el-button>
+            <el-button link type="primary" :loading="actionId === row.id" :disabled="!canEdit || row.status !== 'DRAFT' || Boolean(actionId)" @click="runVersionAction(row, 'validate')">校验</el-button>
+            <el-button link type="primary" :loading="actionId === row.id" :disabled="!canEdit || row.status !== 'VALIDATED' || Boolean(actionId)" @click="runVersionAction(row, 'submit')">审批</el-button>
           </template>
         </el-table-column>
         <template #empty><el-empty description="暂无版本" /></template>

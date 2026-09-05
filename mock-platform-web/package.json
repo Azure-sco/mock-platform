@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "test": "tsc src/utils/requestControl.ts src/utils/releaseActivation.ts --outDir node_modules/.cache/mock-platform-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --strict --skipLibCheck && node --test tests/*.test.mjs",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "build": "npm run type-check && vite build"
@@ -27,6 +28,7 @@
     "globals": "16.3.0",
     "typescript": "5.9.2",
     "typescript-eslint": "8.39.1",
+    "unplugin-vue-components": "32.1.0",
     "vite": "7.1.3",
     "vue-eslint-parser": "10.2.0",
     "vue-tsc": "3.0.6"

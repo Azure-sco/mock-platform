@@ -10,6 +10,7 @@ import {
 } from '../../../api/admin'
 import { useErrorStore } from '../../../stores/errors'
 import type { CallbackAttempt, CallbackTask, CallbackTaskStatus } from '../../../types/admin'
+import { SubmissionCoordinator } from '../../../utils/requestControl'
 
 const errors = useErrorStore()
 const loading = ref(false)
@@ -18,6 +19,7 @@ const tasks = ref<CallbackTask[]>([])
 const selected = ref<CallbackTask | null>(null)
 const attempts = ref<CallbackAttempt[]>([])
 const filter = reactive({ providerCode: '', apiCode: '', status: '' as CallbackTaskStatus | '' })
+const submissions = new SubmissionCoordinator(() => crypto.randomUUID())
 
 async function load() {
   loading.value = true
@@ -49,6 +51,11 @@ async function openAttempts(row: CallbackTask) {
 }
 
 async function retry(row: CallbackTask) {
+  if (actionId.value) return
+  const operation = `callback:retry:${row.taskId}`
+  const attempt = submissions.begin(operation)
+  if (!attempt) return
+  let succeeded = false
   try {
     await ElMessageBox.confirm(
       '人工 Retry 只授权一次额外 Attempt，不会重写历史结果或无限扩大预算。确认继续？',
@@ -56,7 +63,8 @@ async function retry(row: CallbackTask) {
       { type: 'warning' },
     )
     actionId.value = row.taskId
-    await retryCallbackTask(row.taskId, crypto.randomUUID(), 0)
+    await retryCallbackTask(row.taskId, attempt.key, 0)
+    succeeded = true
     ElMessage.success('已授权一次人工重试')
     await load()
     await openAttempts(row)
@@ -64,10 +72,16 @@ async function retry(row: CallbackTask) {
     if (failure !== 'cancel' && !errors.latest) errors.capture({ code: 'CALLBACK_RETRY_FAILED', message: 'Callback 人工重试失败' })
   } finally {
     actionId.value = null
+    attempt.finish(succeeded)
   }
 }
 
 async function cancel(row: CallbackTask) {
+  if (actionId.value) return
+  const operation = `callback:cancel:${row.taskId}`
+  const attempt = submissions.begin(operation)
+  if (!attempt) return
+  let succeeded = false
   try {
     await ElMessageBox.confirm(
       '只能取消尚未开始发送的任务；RUNNING 任务不会被伪装成已撤回。确认继续？',
@@ -75,13 +89,15 @@ async function cancel(row: CallbackTask) {
       { type: 'warning' },
     )
     actionId.value = row.taskId
-    await cancelCallbackTask(row.taskId, crypto.randomUUID())
+    await cancelCallbackTask(row.taskId, attempt.key)
+    succeeded = true
     ElMessage.success('Callback 取消请求已提交')
     await load()
   } catch (failure) {
     if (failure !== 'cancel' && !errors.latest) errors.capture({ code: 'CALLBACK_CANCEL_FAILED', message: 'Callback 取消失败' })
   } finally {
     actionId.value = null
+    attempt.finish(succeeded)
   }
 }
 
@@ -108,7 +124,7 @@ onMounted(load)
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M3 · CALLBACK DELIVERY</p>
+        <p class="eyebrow">CALLBACK DELIVERY</p>
         <h2>回调任务</h2>
         <p>Task 固定最终 URL/Header/Payload、Release 和安全策略；Attempt 展示 lease/fencing 与确定投递语义。</p>
       </div>

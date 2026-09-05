@@ -7,6 +7,7 @@ import { createApi, getProviderApis, getProviders, updateApi } from '../../../ap
 import { useErrorStore } from '../../../stores/errors'
 import { useSessionStore } from '../../../stores/session'
 import type { ApiMutation, MockApi, Provider } from '../../../types/admin'
+import { LatestRequestGate, SubmissionCoordinator } from '../../../utils/requestControl'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,8 @@ const size = ref(20)
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive<ApiMutation>(emptyForm())
+const apiGate = new LatestRequestGate()
+const submissions = new SubmissionCoordinator()
 
 function emptyForm(): ApiMutation {
   return {
@@ -50,21 +53,22 @@ async function loadProviderOptions() {
 
 async function loadApis(resetPage = false) {
   if (resetPage) page.value = 1
-  if (!selectedProviderId.value) {
-    apis.value = []
-    total.value = 0
-    return
-  }
+  const providerId = selectedProviderId.value
+  const request = apiGate.next()
+  apis.value = []
+  total.value = 0
+  if (!providerId) return
   loading.value = true
   errors.clear()
   try {
-    const result = await getProviderApis(selectedProviderId.value, { page: page.value, size: size.value })
+    const result = await getProviderApis(providerId, { page: page.value, size: size.value })
+    if (!apiGate.isLatest(request)) return
     apis.value = result.records
     total.value = result.total
   } catch {
-    if (!errors.latest) errors.capture({ code: 'API_LOAD_FAILED', message: 'API 列表加载失败' })
+    if (apiGate.isLatest(request) && !errors.latest) errors.capture({ code: 'API_LOAD_FAILED', message: 'API 列表加载失败' })
   } finally {
-    loading.value = false
+    if (apiGate.isLatest(request)) loading.value = false
   }
 }
 
@@ -116,11 +120,16 @@ function openEdit(api: MockApi) {
 }
 
 async function submit() {
+  if (saving.value) return
   if (!form.apiCode.trim() || !form.apiName.trim() || !form.path.trim() || !form.owner.trim()) {
     ElMessage.warning('请完整填写 API Code、名称、Path 和负责人')
     return
   }
+  const operation = editingId.value ? `api:update:${editingId.value}` : `api:create:${form.providerId}`
+  const attempt = submissions.begin(operation, JSON.stringify(form))
+  if (!attempt) return
   saving.value = true
+  let succeeded = false
   errors.clear()
   try {
     const payload: ApiMutation = {
@@ -139,18 +148,20 @@ async function submit() {
         contentType: payload.contentType,
         owner: payload.owner,
         status: payload.status,
-      })
+      }, attempt.key)
       ElMessage.success('API 已更新')
     } else {
-      await createApi(payload)
+      await createApi(payload, attempt.key)
       ElMessage.success('API 已创建')
     }
+    succeeded = true
     dialogVisible.value = false
     await loadApis()
   } catch {
     if (!errors.latest) errors.capture({ code: 'API_SAVE_FAILED', message: 'API 保存失败' })
   } finally {
     saving.value = false
+    attempt.finish(succeeded)
   }
 }
 
@@ -179,7 +190,7 @@ onMounted(initialize)
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M1 · API CATALOG</p>
+        <p class="eyebrow">API CATALOG</p>
         <h2>API 管理</h2>
         <p>按 Provider 维护稳定 API 标识、请求方法和路径，并进入契约版本管理。</p>
       </div>

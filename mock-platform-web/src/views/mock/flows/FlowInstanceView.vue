@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, shallowRef } from 'vue'
+import { onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
 import {
@@ -12,6 +12,7 @@ import {
 import { useErrorStore } from '../../../stores/errors'
 import { useSessionStore } from '../../../stores/session'
 import type { FlowEvent, FlowInstance, FlowInstanceStatus } from '../../../types/admin'
+import { LatestRequestGate, SubmissionCoordinator } from '../../../utils/requestControl'
 
 const errors = useErrorStore()
 const session = useSessionStore()
@@ -28,22 +29,29 @@ const filter = reactive({
   flowCode: '',
   status: '' as FlowInstanceStatus | '',
 })
+const loadGate = new LatestRequestGate()
+const submissions = new SubmissionCoordinator(() => crypto.randomUUID())
 
 async function load() {
+  const request = loadGate.next()
+  const environment = session.environment
+  flows.value = []
   loading.value = true
   errors.clear()
   try {
-    flows.value = await getFlowInstances({
-      environment: session.environment,
+    const result = await getFlowInstances({
+      environment,
       appCode: filter.appCode || undefined,
       providerCode: filter.providerCode || undefined,
       flowCode: filter.flowCode || undefined,
       status: filter.status || undefined,
     })
+    if (!loadGate.isLatest(request)) return
+    flows.value = result
   } catch {
-    if (!errors.latest) errors.capture({ code: 'FLOW_INSTANCE_LOAD_FAILED', message: 'Flow Instance 加载失败' })
+    if (loadGate.isLatest(request) && !errors.latest) errors.capture({ code: 'FLOW_INSTANCE_LOAD_FAILED', message: 'Flow Instance 加载失败' })
   } finally {
-    loading.value = false
+    if (loadGate.isLatest(request)) loading.value = false
   }
 }
 
@@ -61,15 +69,21 @@ async function openEvents(row: FlowInstance) {
 }
 
 async function manualTransition() {
+  if (actionKey.value) return
   if (!selected.value || !transitionId.value.trim()) {
     ElMessage.warning('Transition ID 不能为空')
     return
   }
   const flow = selected.value
+  const operation = `flow:transition:${flow.flowKey}:${transitionId.value.trim()}`
+  const attempt = submissions.begin(operation)
+  if (!attempt) return
+  let succeeded = false
   try {
     await ElMessageBox.confirm('人工迁移会改变 Flow 权威状态并写同步审计，确认继续？', '二次确认', { type: 'warning' })
     actionKey.value = flow.flowKey
-    await transitionFlow(flow.flowKey, transitionId.value.trim(), crypto.randomUUID())
+    await transitionFlow(flow.flowKey, transitionId.value.trim(), attempt.key)
+    succeeded = true
     transitionVisible.value = false
     ElMessage.success('人工迁移已提交')
     await load()
@@ -78,10 +92,16 @@ async function manualTransition() {
     if (failure !== 'cancel' && !errors.latest) errors.capture({ code: 'FLOW_TRANSITION_FAILED', message: '人工迁移失败' })
   } finally {
     actionKey.value = null
+    attempt.finish(succeeded)
   }
 }
 
 async function runLifecycle(row: FlowInstance, action: 'reset' | 'delete') {
+  if (actionKey.value) return
+  const operation = `flow:${action}:${row.flowKey}`
+  const attempt = submissions.begin(operation)
+  if (!attempt) return
+  let succeeded = false
   try {
     await ElMessageBox.confirm(
       action === 'reset'
@@ -91,9 +111,10 @@ async function runLifecycle(row: FlowInstance, action: 'reset' | 'delete') {
       { type: 'warning', confirmButtonText: '确认执行' },
     )
     actionKey.value = row.flowKey
-    const requestId = crypto.randomUUID()
+    const requestId = attempt.key
     if (action === 'reset') await resetFlow(row.flowKey, requestId, false)
     else await deleteFlow(row.flowKey, requestId)
+    succeeded = true
     ElMessage.success(action === 'reset' ? 'Flow 已 Reset' : 'Flow 已逻辑删除')
     await load()
     if (selected.value?.flowKey === row.flowKey) await openEvents(row)
@@ -103,6 +124,7 @@ async function runLifecycle(row: FlowInstance, action: 'reset' | 'delete') {
     }
   } finally {
     actionKey.value = null
+    attempt.finish(succeeded)
   }
 }
 
@@ -113,13 +135,19 @@ function statusType(status: FlowInstanceStatus) {
 }
 
 onMounted(load)
+watch(() => session.environment, () => {
+  selected.value = null
+  events.value = []
+  transitionVisible.value = false
+  void load()
+})
 </script>
 
 <template>
   <section class="management-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">M3 · FLOW INSTANCE</p>
+        <p class="eyebrow">FLOW INSTANCE</p>
         <h2>流程实例</h2>
         <p>实例固定 Release、Flow Definition Version、checksum 和 generation；Reset/Delete 与 Callback 共享严格锁序。</p>
       </div>

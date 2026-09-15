@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -176,28 +178,24 @@ onMounted(load)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">FLOW DEFINITION</p>
-        <h2>流程定义</h2>
-        <p>Participant、业务键提取器、变量、迁移和 TTL 均以不可变 Version 管理；发布后的 Flow 固定版本与 checksum。</p>
-      </div>
+    <PageHeader description="Participant、业务键提取器、变量、迁移和 TTL 均以不可变 Version 管理；发布后的 Flow 固定版本与 checksum。">
+      <template #title>流程定义</template>
       <el-button type="primary" @click="createDefinitionVisible = true">新建 Flow</el-button>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="definitions" row-key="id">
-        <el-table-column prop="flowCode" label="Flow Code" min-width="190" />
-        <el-table-column prop="flowName" label="名称" min-width="180" />
-        <el-table-column prop="providerCode" label="Provider" min-width="140">
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="definitions" row-key="id">
+        <el-table-column prop="flowCode" label="Flow Code" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="flowName" label="名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="providerCode" label="Provider" min-width="140" show-overflow-tooltip>
           <template #default="{ row }">{{ row.providerCode || `#${row.providerId}` }}</template>
         </el-table-column>
         <el-table-column label="草稿版本" width="100"><template #default="{ row }">v{{ row.currentDraftVersion }}</template></el-table-column>
-        <el-table-column prop="status" label="状态" width="110"><template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" min-width="175" />
+        <el-table-column prop="status" label="状态" width="110" show-overflow-tooltip><template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column prop="updatedAt" label="更新时间" min-width="175" show-overflow-tooltip />
         <el-table-column label="操作" width="100" fixed="right"><template #default="{ row }"><el-button link type="primary" :loading="actionId === row.id" @click="openVersions(row)">版本</el-button></template></el-table-column>
-        <template #empty><el-empty description="暂无 Flow Definition" /></template>
+        <template #empty><EmptyState description="暂无 Flow Definition" /></template>
       </el-table>
     </el-card>
 
@@ -207,11 +205,11 @@ onMounted(load)
       </template>
       <el-table :data="versions" row-key="id">
         <el-table-column label="版本" width="75"><template #default="{ row }">v{{ row.versionNo }}</template></el-table-column>
-        <el-table-column prop="status" label="状态" width="145"><template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column prop="initialState" label="初始状态" min-width="130" />
-        <el-table-column prop="ttlSeconds" label="TTL(s)" width="105" />
+        <el-table-column prop="status" label="状态" width="145" show-overflow-tooltip><template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column prop="initialState" label="初始状态" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="ttlSeconds" label="TTL(s)" width="105" show-overflow-tooltip />
         <el-table-column prop="checksum" label="Checksum" min-width="230" show-overflow-tooltip />
-        <el-table-column prop="validationStatus" label="校验" width="110" />
+        <el-table-column prop="validationStatus" label="校验" width="110" show-overflow-tooltip />
         <el-table-column label="操作" width="145"><template #default="{ row }"><el-button link type="primary" :loading="actionId === row.id" :disabled="row.status !== 'DRAFT' || Boolean(actionId)" @click="runAction(row, 'validate')">校验</el-button><el-button link type="primary" :loading="actionId === row.id" :disabled="row.status !== 'VALIDATED' || Boolean(actionId)" @click="runAction(row, 'approval')">审批</el-button></template></el-table-column>
       </el-table>
     </el-card>

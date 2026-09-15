@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import AppIcon from '../components/AppIcon.vue'
 import { useHealthStore } from '../stores/health'
 import { useSessionStore, type Environment } from '../stores/session'
 
@@ -23,30 +24,30 @@ const navGroups = [
   {
     label: '运行',
     items: [
-      { to: '/mock/dashboard', icon: '⌁', label: '运行概览' },
-      { to: '/mock/requests', icon: '≋', label: '请求记录' },
-      { to: '/mock/callbacks', icon: '↗', label: '回调任务' },
-      { to: '/mock/flows', icon: '⌘', label: '流程实例' },
+      { to: '/mock/dashboard', icon: 'dashboard', label: '运行概览' },
+      { to: '/mock/requests', icon: 'requests', label: '请求记录' },
+      { to: '/mock/callbacks', icon: 'callbacks', label: '回调任务' },
+      { to: '/mock/flows', icon: 'flows', label: '流程实例' },
     ],
   },
   {
     label: '配置',
     items: [
-      { to: '/mock/providers', icon: '◈', label: 'Provider 管理' },
-      { to: '/mock/apis', icon: '⌗', label: 'API 管理' },
-      { to: '/mock/contracts', icon: '◇', label: '契约管理' },
-      { to: '/mock/scenarios', icon: '◎', label: '场景管理' },
-      { to: '/mock/flow-definitions', icon: '⑂', label: '流程定义' },
-      { to: '/mock/sdk-configs', icon: '⚙', label: 'SDK Config' },
+      { to: '/mock/providers', icon: 'providers', label: 'Provider 管理' },
+      { to: '/mock/apis', icon: 'apis', label: 'API 管理' },
+      { to: '/mock/contracts', icon: 'contracts', label: '契约管理' },
+      { to: '/mock/scenarios', icon: 'scenarios', label: '场景管理' },
+      { to: '/mock/flow-definitions', icon: 'definitions', label: '流程定义' },
+      { to: '/mock/sdk-configs', icon: 'settings', label: 'SDK Config' },
     ],
   },
   {
     label: '治理',
     items: [
-      { to: '/mock/releases', icon: '⬆', label: '发布与回滚' },
-      { to: '/mock/approvals', icon: '✓', label: '审批中心' },
-      { to: '/mock/security-policies', icon: '◆', label: '安全策略' },
-      { to: '/mock/audits', icon: '◷', label: '审计日志' },
+      { to: '/mock/releases', icon: 'releases', label: '发布与回滚' },
+      { to: '/mock/approvals', icon: 'approvals', label: '审批中心' },
+      { to: '/mock/security-policies', icon: 'security', label: '安全策略' },
+      { to: '/mock/audits', icon: 'audits', label: '审计日志' },
     ],
   },
 ]
@@ -59,25 +60,25 @@ const navGroups = [
         <span class="brand-mark">XT</span>
         <div v-if="!session.sidebarCollapsed"><strong>巡天 Mock</strong><small>第三方接口平台</small></div>
       </div>
-      <nav class="navigation" aria-label="主导航">
+      <nav id="main-navigation" class="navigation" aria-label="主导航">
         <section v-for="group in navGroups" :key="group.label" class="nav-group">
           <p v-if="!session.sidebarCollapsed" class="nav-group-title">{{ group.label }}</p>
-          <RouterLink v-for="item in group.items" :key="item.to" :to="item.to" class="nav-item" :title="item.label">
-            <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+          <RouterLink v-for="item in group.items" :key="item.to" :to="item.to" class="nav-item" :title="item.label" :aria-label="item.label">
+            <span class="nav-icon"><AppIcon :name="item.icon" /></span>
             <span v-if="!session.sidebarCollapsed">{{ item.label }}</span>
           </RouterLink>
         </section>
       </nav>
-      <button class="sidebar-help" type="button" title="帮助与交付说明" @click="helpVisible = true">
-        <span class="nav-icon">?</span><span v-if="!session.sidebarCollapsed">帮助与交付说明</span>
+      <button class="sidebar-help" type="button" title="帮助与交付说明" aria-label="帮助与交付说明" @click="helpVisible = true">
+        <span class="nav-icon"><AppIcon name="help" /></span><span v-if="!session.sidebarCollapsed">帮助与交付说明</span>
       </button>
     </aside>
 
     <section class="app-main">
       <header class="topbar">
         <div class="topbar-left">
-          <button class="sidebar-toggle" type="button" aria-label="切换侧边栏" @click="session.toggleSidebar">{{ session.sidebarCollapsed ? '›' : '‹' }}</button>
-          <div><p class="breadcrumb">MOCK PLATFORM / {{ session.environment }}</p><h1>{{ title }}</h1></div>
+          <button class="sidebar-toggle" type="button" aria-label="切换侧边栏" aria-controls="main-navigation" :aria-expanded="!session.sidebarCollapsed" @click="session.toggleSidebar"><AppIcon name="sidebar" /></button>
+          <p class="breadcrumb"><span class="breadcrumb-workspace">Mock 平台</span><span class="breadcrumb-separator" aria-hidden="true">/</span><span class="breadcrumb-current">{{ title }}</span></p>
         </div>
         <div class="topbar-right">
           <span class="health-pill" :class="healthPill.className">{{ healthPill.label }}</span>

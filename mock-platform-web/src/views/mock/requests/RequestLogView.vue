@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -146,14 +148,10 @@ onMounted(() => loadLogs())
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">REQUEST OBSERVABILITY</p>
-        <h2>请求记录</h2>
-        <p>查询 Runtime 已持久化的脱敏请求摘要；该列表不是幂等账本或原始报文存储。</p>
-      </div>
+    <PageHeader description="查询 Runtime 已持久化的脱敏请求摘要；该列表不是幂等账本或原始报文存储。">
+      <template #title>请求记录</template>
       <el-button type="primary" plain @click="loadLogs">刷新</el-button>
-    </div>
+    </PageHeader>
 
     <HttpErrorAlert />
 
@@ -201,9 +199,9 @@ onMounted(() => loadLogs())
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="logs" row-key="id">
-        <el-table-column prop="createdAt" label="时间" min-width="175" />
-        <el-table-column prop="appCode" label="App" min-width="130" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="logs" row-key="id">
+        <el-table-column prop="createdAt" label="时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="appCode" label="App" min-width="130" show-overflow-tooltip />
         <el-table-column label="Provider / API" min-width="230">
           <template #default="{ row }">
             <strong>{{ row.providerCode }}</strong>
@@ -234,7 +232,7 @@ onMounted(() => loadLogs())
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="当前筛选条件下没有请求记录" />
+          <EmptyState description="当前筛选条件下没有请求记录" />
         </template>
       </el-table>
       <div class="table-pagination">
@@ -250,7 +248,7 @@ onMounted(() => loadLogs())
       </div>
     </el-card>
 
-    <el-drawer v-model="detailVisible" title="请求记录详情" size="58%">
+    <el-drawer v-model="detailVisible" class="request-drawer" title="请求记录详情" size="58%">
       <div v-loading="detailLoading" class="request-detail">
         <template v-if="detail">
           <el-descriptions :column="2" border>
@@ -281,7 +279,7 @@ onMounted(() => loadLogs())
             </section>
           </div>
         </template>
-        <el-empty v-else-if="!detailLoading" description="未能加载请求详情" />
+        <EmptyState v-else-if="!detailLoading" description="未能加载请求详情" />
       </div>
     </el-drawer>
   </section>

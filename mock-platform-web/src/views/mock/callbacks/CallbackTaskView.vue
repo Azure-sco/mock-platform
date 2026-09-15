@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -122,13 +124,9 @@ onMounted(load)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">CALLBACK DELIVERY</p>
-        <h2>回调任务</h2>
-        <p>Task 固定最终 URL/Header/Payload、Release 和安全策略；Attempt 展示 lease/fencing 与确定投递语义。</p>
-      </div>
-    </div>
+    <PageHeader description="Task 固定最终 URL/Header/Payload、Release 和安全策略；Attempt 展示 lease/fencing 与确定投递语义。">
+      <template #title>回调任务</template>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="filter-card" shadow="never">
@@ -141,16 +139,16 @@ onMounted(load)
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="tasks" row-key="taskId">
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="tasks" row-key="taskId">
         <el-table-column prop="deliveryId" label="Delivery ID" min-width="175" show-overflow-tooltip />
         <el-table-column label="接口" min-width="185"><template #default="{ row }">{{ row.providerCode }} / {{ row.apiCode }}</template></el-table-column>
         <el-table-column label="目标" min-width="185"><template #default="{ row }">{{ row.callbackHost }}{{ row.callbackPathMasked }}</template></el-table-column>
         <el-table-column label="状态" min-width="175"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column label="发送预算" width="110"><template #default="{ row }">{{ row.sendAttemptCount }} / {{ row.maxRetry + 1 }}</template></el-table-column>
         <el-table-column label="准备重试" width="105"><template #default="{ row }">{{ row.preparationRetryCount }} / {{ row.maxPreparationRetry }}</template></el-table-column>
-        <el-table-column prop="fencingToken" label="Fencing" width="85" />
-        <el-table-column prop="lastHttpStatus" label="HTTP" width="80" />
-        <el-table-column prop="nextExecuteAt" label="下次执行" min-width="175" />
+        <el-table-column prop="fencingToken" label="Fencing" width="85" show-overflow-tooltip />
+        <el-table-column prop="lastHttpStatus" label="HTTP" width="80" show-overflow-tooltip />
+        <el-table-column prop="nextExecuteAt" label="下次执行" min-width="175" show-overflow-tooltip />
         <el-table-column label="操作" width="185" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.taskId" @click="openAttempts(row)">Attempts</el-button>
@@ -158,21 +156,21 @@ onMounted(load)
             <el-button link type="danger" :disabled="!canCancel(row.status)" @click="cancel(row)">取消</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无 Callback Task" /></template>
+        <template #empty><EmptyState description="暂无 Callback Task" /></template>
       </el-table>
     </el-card>
 
     <el-card v-if="selected" class="table-card" shadow="never">
       <template #header><strong>{{ selected.deliveryId }} · Attempts</strong></template>
       <el-table :data="attempts" row-key="id">
-        <el-table-column prop="attemptNo" label="Attempt" width="85" />
-        <el-table-column prop="sendAttemptNo" label="Send" width="75" />
-        <el-table-column prop="fencingToken" label="Fencing" width="85" />
-        <el-table-column prop="status" label="状态" min-width="165" />
-        <el-table-column prop="deliveryCertainty" label="投递确定性" min-width="190" />
-        <el-table-column prop="httpStatus" label="HTTP" width="80" />
-        <el-table-column prop="startedAt" label="开始" min-width="175" />
-        <el-table-column prop="completedAt" label="完成" min-width="175" />
+        <el-table-column prop="attemptNo" label="Attempt" width="85" show-overflow-tooltip />
+        <el-table-column prop="sendAttemptNo" label="Send" width="75" show-overflow-tooltip />
+        <el-table-column prop="fencingToken" label="Fencing" width="85" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" min-width="165" show-overflow-tooltip />
+        <el-table-column prop="deliveryCertainty" label="投递确定性" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="httpStatus" label="HTTP" width="80" show-overflow-tooltip />
+        <el-table-column prop="startedAt" label="开始" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="completedAt" label="完成" min-width="175" show-overflow-tooltip />
         <el-table-column prop="resultMasked" label="结果（脱敏）" min-width="180" show-overflow-tooltip />
       </el-table>
     </el-card>

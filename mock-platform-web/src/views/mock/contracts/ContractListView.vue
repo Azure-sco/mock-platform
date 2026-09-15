@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -217,13 +219,11 @@ onMounted(initialize)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div><p class="eyebrow">CONTRACT VERSIONS</p><h2>契约管理</h2><p>契约按版本创建、校验和发布；发布版本保持不可变。</p></div>
-      <div class="heading-actions">
-        <el-button :disabled="!canEdit || !selectedApiId" @click="importDialogVisible = true">导入契约</el-button>
+    <PageHeader description="契约按版本创建、校验和发布；发布版本保持不可变。">
+      <template #title>契约管理</template>
+      <el-button :disabled="!canEdit || !selectedApiId" @click="importDialogVisible = true">导入契约</el-button>
         <el-button type="primary" :disabled="!canEdit || !selectedApiId" @click="createDialogVisible = true">新建版本</el-button>
-      </div>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
     <el-card class="filter-card" shadow="never">
       <el-form inline>
@@ -241,13 +241,13 @@ onMounted(initialize)
       </el-form>
     </el-card>
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="contracts" row-key="id">
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="contracts" row-key="id">
         <el-table-column label="版本" width="90"><template #default="{ row }"><strong>v{{ row.versionNo }}</strong></template></el-table-column>
         <el-table-column label="状态" width="120"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Checksum" min-width="230" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum || '—' }}</code></template></el-table-column>
-        <el-table-column prop="sourceType" label="来源" width="110" />
-        <el-table-column prop="createdBy" label="创建人" min-width="120"><template #default="{ row }">{{ row.createdBy || '—' }}</template></el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" min-width="170"><template #default="{ row }">{{ row.createdAt || '—' }}</template></el-table-column>
+        <el-table-column prop="sourceType" label="来源" width="110" show-overflow-tooltip />
+        <el-table-column prop="createdBy" label="创建人" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.createdBy || '—' }}</template></el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ row.createdAt || '—' }}</template></el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canEdit || row.status !== 'DRAFT' || Boolean(actionId)" @click="runAction(row, 'validate')">校验</el-button>
@@ -255,7 +255,7 @@ onMounted(initialize)
             <el-button link type="primary" :disabled="Boolean(actionId)" @click="openDiff(row)">对比</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty :description="selectedApiId ? '该 API 暂无契约版本' : '请先选择 Provider 和 API'" /></template>
+        <template #empty><EmptyState :description="selectedApiId ? '该 API 暂无契约版本' : '请先选择 Provider 和 API'" /></template>
       </el-table>
     </el-card>
     <ContractEditorDialog v-model="createDialogVisible" :submitting="saving" :disabled="!canEdit" @submit="submitDraft" />

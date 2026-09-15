@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -234,14 +236,10 @@ watch(() => session.environment, () => {
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">IMMUTABLE RELEASE</p>
-        <h2>发布与回滚</h2>
-        <p>MySQL Active Release 是权威状态；Redis、Runtime Cache 与节点 ACK 均为可恢复投影。</p>
-      </div>
+    <PageHeader description="MySQL Active Release 是权威状态；Redis、Runtime Cache 与节点 ACK 均为可恢复投影。">
+      <template #title>发布与回滚</template>
       <el-button type="primary" :disabled="!canPublish" @click="openCreate">创建 Release</el-button>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="filter-card" shadow="never">
@@ -258,21 +256,21 @@ watch(() => session.environment, () => {
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="visibleReleases" row-key="id">
-        <el-table-column prop="releaseCode" label="Release" min-width="180" />
-        <el-table-column prop="environment" label="环境" width="90" />
-        <el-table-column prop="appCode" label="App" min-width="140" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="visibleReleases" row-key="id">
+        <el-table-column prop="releaseCode" label="Release" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="environment" label="环境" width="90" show-overflow-tooltip />
+        <el-table-column prop="appCode" label="App" min-width="140" show-overflow-tooltip />
         <el-table-column label="状态" width="120"><template #default="{ row }"><el-tag :type="releaseTag(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Snapshot Checksum" min-width="250" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum }}</code></template></el-table-column>
-        <el-table-column prop="signatureKeyId" label="签名 Key" min-width="130" />
-        <el-table-column prop="createdAt" label="创建时间" min-width="170" />
+        <el-table-column prop="signatureKeyId" label="签名 Key" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'READY'" @click="activate(row, 'publish')">发布</el-button>
             <el-button link type="warning" :loading="actionId === row.id" :disabled="!canPublish || !['READY', 'PUBLISHED'].includes(row.status)" @click="activate(row, 'rollback')">回滚</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty :description="activeLoaded ? '当前环境与应用暂无 Release' : '正在加载发布状态'" /></template>
+        <template #empty><EmptyState :description="activeLoaded ? '当前环境与应用暂无 Release' : '正在加载发布状态'" /></template>
       </el-table>
     </el-card>
 

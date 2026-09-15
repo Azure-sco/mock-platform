@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -129,16 +131,12 @@ onMounted(() => loadProviders())
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">RESOURCE CATALOG</p>
-        <h2>Provider 管理</h2>
-        <p>维护第三方服务的稳定身份；环境地址和高风险策略不在此处直接编辑。</p>
-      </div>
+    <PageHeader description="维护第三方服务的稳定身份；环境地址和高风险策略不在此处直接编辑。">
+      <template #title>Provider 管理</template>
       <el-button type="primary" :disabled="!canEdit" title="需要 MOCK_ADMIN 角色" @click="openCreate">
         新增 Provider
       </el-button>
-    </div>
+    </PageHeader>
 
     <HttpErrorAlert />
 
@@ -161,10 +159,10 @@ onMounted(() => loadProviders())
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="providers" row-key="id">
-        <el-table-column prop="providerCode" label="Provider Code" min-width="170" />
-        <el-table-column prop="providerName" label="名称" min-width="180" />
-        <el-table-column prop="owner" label="负责人" min-width="140" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="providers" row-key="id">
+        <el-table-column prop="providerCode" label="Provider Code" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="providerName" label="名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="owner" label="负责人" min-width="140" show-overflow-tooltip />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" effect="plain">
@@ -172,7 +170,7 @@ onMounted(() => loadProviders())
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" min-width="170">
+        <el-table-column prop="updatedAt" label="更新时间" min-width="170" show-overflow-tooltip>
           <template #default="{ row }">{{ row.updatedAt || '—' }}</template>
         </el-table-column>
         <el-table-column label="操作" width="190" fixed="right">
@@ -182,7 +180,7 @@ onMounted(() => loadProviders())
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="暂无 Provider，可由管理员创建第一条记录" />
+          <EmptyState description="暂无 Provider，可由管理员创建第一条记录" />
         </template>
       </el-table>
       <div class="table-pagination">

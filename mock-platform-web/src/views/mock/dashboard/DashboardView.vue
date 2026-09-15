@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted } from 'vue'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
 import { useHealthStore } from '../../../stores/health'
@@ -27,14 +28,10 @@ onMounted(() => health.refresh())
 
 <template>
   <section class="dashboard">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">OPERATIONS OVERVIEW</p>
-        <h2>{{ session.environment }} 运行概览</h2>
-        <p>聚焦服务可用性、请求质量和需要处理的异常。</p>
-      </div>
+    <PageHeader description="聚焦服务可用性、请求质量和需要处理的异常。">
+      <template #title>{{ session.environment }} 运行概览</template>
       <el-button type="primary" :loading="health.loading" @click="health.refresh">刷新状态</el-button>
-    </div>
+    </PageHeader>
 
     <HttpErrorAlert />
     <el-alert v-if="health.summaryFailed" type="error" :closable="false" show-icon title="运行指标加载失败，指标暂以 — 展示；服务健康状态仍可独立查看。" />

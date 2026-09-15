@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -145,13 +147,9 @@ watch(() => session.environment, () => {
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">FLOW INSTANCE</p>
-        <h2>流程实例</h2>
-        <p>实例固定 Release、Flow Definition Version、checksum 和 generation；Reset/Delete 与 Callback 共享严格锁序。</p>
-      </div>
-    </div>
+    <PageHeader description="实例固定 Release、Flow Definition Version、checksum 和 generation；Reset/Delete 与 Callback 共享严格锁序。">
+      <template #title>流程实例</template>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="filter-card" shadow="never">
@@ -165,17 +163,17 @@ watch(() => session.environment, () => {
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="flows" row-key="flowKey">
-        <el-table-column prop="businessNoMasked" label="业务单号" min-width="130" />
-        <el-table-column prop="flowCode" label="Flow" min-width="155" />
-        <el-table-column prop="appCode" label="App" min-width="130" />
-        <el-table-column prop="providerCode" label="Provider" min-width="120" />
-        <el-table-column prop="currentState" label="当前状态" min-width="125" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="flows" row-key="flowKey">
+        <el-table-column prop="businessNoMasked" label="业务单号" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="flowCode" label="Flow" min-width="155" show-overflow-tooltip />
+        <el-table-column prop="appCode" label="App" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="providerCode" label="Provider" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="currentState" label="当前状态" min-width="125" show-overflow-tooltip />
         <el-table-column label="状态" width="105"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column label="Generation" width="105"><template #default="{ row }">g{{ row.generation }}</template></el-table-column>
-        <el-table-column prop="queryCount" label="查询次数" width="95" />
+        <el-table-column prop="queryCount" label="查询次数" width="95" show-overflow-tooltip />
         <el-table-column prop="releaseId" label="固定 Release" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="expireAt" label="过期时间" min-width="175" />
+        <el-table-column prop="expireAt" label="过期时间" min-width="175" show-overflow-tooltip />
         <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionKey === row.flowKey" @click="openEvents(row)">事件</el-button>
@@ -184,20 +182,20 @@ watch(() => session.environment, () => {
             <el-button link type="danger" :disabled="row.status === 'DELETED'" @click="runLifecycle(row, 'delete')">删除</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无 Flow Instance" /></template>
+        <template #empty><EmptyState description="暂无 Flow Instance" /></template>
       </el-table>
     </el-card>
 
     <el-card v-if="selected" class="table-card" shadow="never">
       <template #header><strong>{{ selected.flowCode }} / {{ selected.businessNoMasked }} · Generation {{ selected.generation }} 事件</strong></template>
       <el-table :data="events" row-key="eventId">
-        <el-table-column prop="eventAt" label="时间" min-width="175" />
-        <el-table-column prop="sourceType" label="来源" width="90" />
-        <el-table-column prop="eventType" label="事件" min-width="120" />
-        <el-table-column prop="transitionId" label="Transition" min-width="145" />
+        <el-table-column prop="eventAt" label="时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="sourceType" label="来源" width="90" show-overflow-tooltip />
+        <el-table-column prop="eventType" label="事件" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="transitionId" label="Transition" min-width="145" show-overflow-tooltip />
         <el-table-column label="状态" min-width="160"><template #default="{ row }">{{ row.fromState || '—' }} → {{ row.toState || '—' }}</template></el-table-column>
-        <el-table-column prop="queryCount" label="Query Count" width="105" />
-        <el-table-column prop="operator" label="操作人" min-width="120" />
+        <el-table-column prop="queryCount" label="Query Count" width="105" show-overflow-tooltip />
+        <el-table-column prop="operator" label="操作人" min-width="120" show-overflow-tooltip />
       </el-table>
     </el-card>
 

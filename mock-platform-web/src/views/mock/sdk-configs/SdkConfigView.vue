@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -214,14 +216,10 @@ watch(() => session.environment, () => {
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">ATOMIC SDK CONFIG</p>
-        <h2>SDK Config</h2>
-        <p>路由、Header Filter 与 Fallback Policy 通过一个签名 Envelope 整包切换。</p>
-      </div>
+    <PageHeader description="路由、Header Filter 与 Fallback Policy 通过一个签名 Envelope 整包切换。">
+      <template #title>SDK Config</template>
       <el-button type="primary" :disabled="!canPublish" @click="openCreate">新建 Envelope</el-button>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="filter-card" shadow="never">
@@ -233,14 +231,14 @@ watch(() => session.environment, () => {
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="envelopes" row-key="id">
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="envelopes" row-key="id">
         <el-table-column label="Config" width="90"><template #default="{ row }">v{{ row.configVersion }}</template></el-table-column>
-        <el-table-column prop="appCode" label="App" min-width="140" />
-        <el-table-column prop="environment" label="环境" width="90" />
+        <el-table-column prop="appCode" label="App" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="environment" label="环境" width="90" show-overflow-tooltip />
         <el-table-column label="状态" width="150"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Envelope Checksum" min-width="250" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum }}</code></template></el-table-column>
         <el-table-column label="策略版本" min-width="140"><template #default="{ row }">{{ policyVersionLabels(row) }}</template></el-table-column>
-        <el-table-column prop="effectiveAt" label="计划生效" min-width="170" />
+        <el-table-column prop="effectiveAt" label="计划生效" min-width="170" show-overflow-tooltip />
         <el-table-column label="操作" width="245" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :disabled="!canPublish || row.status !== 'DRAFT'" @click="runAction(row, 'validate')">校验</el-button>
@@ -249,7 +247,7 @@ watch(() => session.environment, () => {
             <el-button link type="warning" :disabled="!canPublish || row.status !== 'PUBLISHED'" @click="runAction(row, 'rollback')">回滚草稿</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无 SDK Config Envelope" /></template>
+        <template #empty><EmptyState description="暂无 SDK Config Envelope" /></template>
       </el-table>
     </el-card>
 

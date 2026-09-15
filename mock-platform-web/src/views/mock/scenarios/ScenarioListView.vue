@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -240,34 +242,30 @@ onMounted(load)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">VERSIONED SCENARIO</p>
-        <h2>场景管理</h2>
-        <p>场景内容按版本校验与审批；Runtime 只消费 Release 固定的发布版本。</p>
-      </div>
+    <PageHeader description="场景内容按版本校验与审批；Runtime 只消费 Release 固定的发布版本。">
+      <template #title>场景管理</template>
       <el-button type="primary" :disabled="!canEdit" @click="createVisible = true">新建场景</el-button>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="scenarios" row-key="id">
-        <el-table-column prop="scenarioCode" label="场景编码" min-width="190" />
-        <el-table-column prop="scenarioName" label="名称" min-width="180" />
-        <el-table-column prop="providerId" label="Provider ID" width="120" />
-        <el-table-column prop="apiId" label="API ID" width="100" />
-        <el-table-column prop="currentDraftVersion" label="当前草稿" width="110" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="scenarios" row-key="id">
+        <el-table-column prop="scenarioCode" label="场景编码" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="scenarioName" label="名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="providerId" label="Provider ID" width="120" show-overflow-tooltip />
+        <el-table-column prop="apiId" label="API ID" width="100" show-overflow-tooltip />
+        <el-table-column prop="currentDraftVersion" label="当前草稿" width="110" show-overflow-tooltip />
         <el-table-column label="状态" width="110">
           <template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" min-width="170" />
+        <el-table-column prop="updatedAt" label="更新时间" min-width="170" show-overflow-tooltip />
         <el-table-column label="操作" width="190" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" @click="openVersions(row)">版本</el-button>
             <el-button link type="primary" :disabled="!canEdit" @click="openVersions(row, true)">新建版本</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无场景，请先创建发布态 Contract" /></template>
+        <template #empty><EmptyState description="暂无场景，请先创建发布态 Contract" /></template>
       </el-table>
     </el-card>
 
@@ -326,7 +324,7 @@ onMounted(load)
       <el-table :data="versions" row-key="id">
         <el-table-column label="版本" width="80"><template #default="{ row }">v{{ row.versionNo }}</template></el-table-column>
         <el-table-column label="状态" width="150"><template #default="{ row }"><el-tag :type="versionTag(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column prop="priority" label="优先级" width="90" />
+        <el-table-column prop="priority" label="优先级" width="90" show-overflow-tooltip />
         <el-table-column prop="checksum" label="Checksum" min-width="220" show-overflow-tooltip />
         <el-table-column label="操作" width="150">
           <template #default="{ row }">
@@ -334,7 +332,7 @@ onMounted(load)
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canEdit || row.status !== 'VALIDATED' || Boolean(actionId)" @click="runVersionAction(row, 'submit')">审批</el-button>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无版本" /></template>
+        <template #empty><EmptyState description="暂无版本" /></template>
       </el-table>
     </el-drawer>
   </section>

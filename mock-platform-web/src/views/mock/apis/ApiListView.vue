@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -188,12 +190,8 @@ onMounted(initialize)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">API CATALOG</p>
-        <h2>API 管理</h2>
-        <p>按 Provider 维护稳定 API 标识、请求方法和路径，并进入契约版本管理。</p>
-      </div>
+    <PageHeader description="按 Provider 维护稳定 API 标识、请求方法和路径，并进入契约版本管理。">
+      <template #title>API 管理</template>
       <el-button
         type="primary"
         :disabled="!canEdit || !selectedProviderId"
@@ -202,7 +200,7 @@ onMounted(initialize)
       >
         新增 API
       </el-button>
-    </div>
+    </PageHeader>
 
     <HttpErrorAlert />
 
@@ -231,9 +229,9 @@ onMounted(initialize)
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="apis" row-key="id">
-        <el-table-column prop="apiCode" label="API Code" min-width="190" />
-        <el-table-column prop="apiName" label="名称" min-width="170" />
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="apis" row-key="id">
+        <el-table-column prop="apiCode" label="API Code" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="apiName" label="名称" min-width="170" show-overflow-tooltip />
         <el-table-column label="请求" min-width="250">
           <template #default="{ row }">
             <div class="request-path">
@@ -242,8 +240,8 @@ onMounted(initialize)
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="contentType" label="Content-Type" min-width="170" />
-        <el-table-column prop="owner" label="负责人" min-width="130" />
+        <el-table-column prop="contentType" label="Content-Type" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="owner" label="负责人" min-width="130" show-overflow-tooltip />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" effect="plain">
@@ -258,7 +256,7 @@ onMounted(initialize)
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="selectedProviderId ? '该 Provider 暂无 API' : '请先创建或选择 Provider'" />
+          <EmptyState :description="selectedProviderId ? '该 Provider 暂无 API' : '请先创建或选择 Provider'" />
         </template>
       </el-table>
       <div class="table-pagination">

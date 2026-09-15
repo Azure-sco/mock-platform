@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
 import { ref, shallowRef, watch } from 'vue'
 import { diffContract } from '../../../api/admin'
 import type { ContractDiff, ContractVersion } from '../../../types/admin'
@@ -41,7 +42,7 @@ async function load() {
       <el-button type="primary" plain :loading="loading" @click="load">加载差异</el-button>
     </div>
     <el-alert v-if="error" type="error" :closable="false" :title="error" />
-    <el-empty v-else-if="!result && !loading" description="选择比较版本后加载字段级差异" />
+    <EmptyState v-else-if="!result && !loading" description="选择比较版本后加载字段级差异" />
     <pre v-else-if="result" class="json-preview">{{ JSON.stringify(result, null, 2) }}</pre>
   </el-dialog>
 </template>

@@ -1,0 +1,41 @@
+/* Shared visual contract. Element Plus consumes these values in element-plus.css. */
+:root {
+  color-scheme: light;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --text-primary: #202124;
+  --text-secondary: #60646c;
+  --text-muted: #777b84;
+  --color-primary: #292c33;
+  --color-success: #287653;
+  --color-warning: #94651d;
+  --color-danger: #b43c43;
+  --color-focus: #5865a8;
+  --surface-page: #fff;
+  --surface-card: #fff;
+  --surface-subtle: #f7f8fa;
+  --surface-hover: #f1f2f5;
+  --surface-selected: #e9ebef;
+  --border-soft: #e7e8ec;
+  --border-strong: #d5d7dd;
+  --radius-small: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --shadow-small: 0 1px 2px rgb(20 24 35 / 4%);
+  --shadow-overlay: 0 12px 40px rgb(20 24 35 / 12%), 0 2px 8px rgb(20 24 35 / 5%);
+  --sidebar-width: 208px;
+  --header-height: 52px;
+  --control-height: 32px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  font-synthesis: none;
+  color: var(--text-primary);
+  background: var(--surface-page);
+}

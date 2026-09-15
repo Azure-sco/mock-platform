@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '../../../components/EmptyState.vue'
+import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpErrorAlert from '../../../components/HttpErrorAlert.vue'
@@ -182,14 +184,10 @@ onMounted(load)
 
 <template>
   <section class="management-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">SECURITY POLICY</p>
-        <h2>安全策略</h2>
-        <p>高风险策略必须经过不可变版本、checksum 审批和签名发布；PUBLISHED、BOUND、EFFECTIVE 分开展示。</p>
-      </div>
+    <PageHeader description="高风险策略必须经过不可变版本、checksum 审批和签名发布；PUBLISHED、BOUND、EFFECTIVE 分开展示。">
+      <template #title>安全策略</template>
       <el-button type="primary" :disabled="!canPublish" @click="createVisible = true">新建策略</el-button>
-    </div>
+    </PageHeader>
     <HttpErrorAlert />
 
     <el-card class="filter-card" shadow="never">
@@ -201,11 +199,11 @@ onMounted(load)
     </el-card>
 
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="policies" row-key="policyId">
-        <el-table-column prop="policyId" label="Policy ID" min-width="170" />
-        <el-table-column prop="policyType" label="类型" min-width="185" />
-        <el-table-column prop="scopeKey" label="Scope" min-width="210" />
-        <el-table-column prop="latestVersionNo" label="版本" width="80"><template #default="{ row }">v{{ row.latestVersionNo }}</template></el-table-column>
+      <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="policies" row-key="policyId">
+        <el-table-column prop="policyId" label="Policy ID" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="policyType" label="类型" min-width="185" show-overflow-tooltip />
+        <el-table-column prop="scopeKey" label="Scope" min-width="210" show-overflow-tooltip />
+        <el-table-column prop="latestVersionNo" label="版本" width="80" show-overflow-tooltip><template #default="{ row }">v{{ row.latestVersionNo }}</template></el-table-column>
         <el-table-column label="Version 状态" width="130"><template #default="{ row }"><el-tag effect="plain">{{ row.latestStatus }}</el-tag></template></el-table-column>
         <el-table-column label="Binding" min-width="170">
           <template #default="{ row }">
@@ -216,7 +214,7 @@ onMounted(load)
           </template>
         </el-table-column>
         <el-table-column label="操作" width="90" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openVersions(row)">版本</el-button></template></el-table-column>
-        <template #empty><el-empty description="暂无安全策略" /></template>
+        <template #empty><EmptyState description="暂无安全策略" /></template>
       </el-table>
     </el-card>
 
@@ -226,8 +224,8 @@ onMounted(load)
         <el-table-column label="版本" width="80"><template #default="{ row }">v{{ row.versionNo }}</template></el-table-column>
         <el-table-column label="状态" width="130"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Checksum" min-width="230" show-overflow-tooltip />
-        <el-table-column prop="signatureKeyId" label="签名 Key" min-width="120" />
-        <el-table-column prop="createdAt" label="创建时间" min-width="170" />
+        <el-table-column prop="signatureKeyId" label="签名 Key" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip />
         <el-table-column label="操作" width="185">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'DRAFT' || Boolean(actionId)" @click="runAction(row, 'validate')">校验</el-button>

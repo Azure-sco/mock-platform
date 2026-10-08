@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class FailClosedRuntimeAckIdentityVerifier implements RuntimeAckIdentityVerifier {
 
     @Override

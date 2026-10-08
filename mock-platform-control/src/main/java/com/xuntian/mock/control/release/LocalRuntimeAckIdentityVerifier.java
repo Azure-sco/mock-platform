@@ -10,7 +10,7 @@ import java.time.Clock;
 import java.time.Instant;
 
 @Component
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class LocalRuntimeAckIdentityVerifier implements RuntimeAckIdentityVerifier {
 
     private final Clock clock;

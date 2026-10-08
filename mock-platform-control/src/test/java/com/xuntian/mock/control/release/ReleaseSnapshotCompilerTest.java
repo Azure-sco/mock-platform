@@ -56,7 +56,22 @@ class ReleaseSnapshotCompilerTest {
                 .hasMessageContaining("checksum");
     }
 
+    @Test
+    void emptyOptionalBusinessKeyIsPublishedAsAbsent() throws Exception {
+        ReleaseMapper releaseMapper = mock(ReleaseMapper.class);
+        when(releaseMapper.selectReleaseSources(List.of(41L))).thenReturn(List.of(source("{}")));
+        var compiler = new ReleaseSnapshotCompiler(releaseMapper, mapper, canonical,
+                new LocalRsaRuntimeSnapshotSigner(), mock(ReleaseSecurityPolicyGate.class));
+        var selection = compiler.validateSelection("TEST", "sample", List.of(41L));
+        var result = compiler.compile("rel-empty", Instant.parse("2026-10-08T00:00:00Z"), selection);
+        assertThat(result.snapshot().compiledContracts().get(0).businessKeyExtractor()).isNull();
+    }
+
     private ReleaseSourceRecord source() throws Exception {
+        return source(null);
+    }
+
+    private ReleaseSourceRecord source(String businessKey) throws Exception {
         String scope = """
                 {"environments":["TEST"],"apps":["sample"],"tenants":[],"testAccounts":[]}
                 """;
@@ -87,6 +102,6 @@ class ReleaseSnapshotCompilerTest {
                 31L, "PUBLISHED", null, 100, null, null,
                 scope, rules, response, callbacks, compiled, checksum, "VALID",
                 "esign", "ENABLED", "contract.query", 11L, "ENABLED", "POST", "/contracts/query",
-                "application/json", "{\"type\":\"object\"}", "{\"type\":\"object\"}", null);
+                "application/json", "{\"type\":\"object\"}", "{\"type\":\"object\"}", businessKey);
     }
 }

@@ -1,6 +1,7 @@
 package com.xuntian.mock.runtime.flow;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -10,6 +11,24 @@ import java.util.HexFormat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RuntimeCryptographyTest {
+
+    @Test
+    void initializesWithConfiguredKeysInSpringContext() {
+        String key = java.util.Base64.getEncoder().encodeToString(filled(32, (byte) 7));
+        new ApplicationContextRunner()
+                .withPropertyValues("MOCK_RUNTIME_DATA_KEYS=data-v1:" + key,
+                        "MOCK_FLOW_HMAC_KEYS=hmac-v1:" + key)
+                .withUserConfiguration(RuntimeCryptography.class)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    RuntimeCryptography cryptography = context.getBean(RuntimeCryptography.class);
+                    byte[] plaintext = "context-test".getBytes(StandardCharsets.UTF_8);
+                    var encrypted = cryptography.encrypt(plaintext);
+                    assertThat(encrypted.keyId()).isEqualTo("data-v1");
+                    assertThat(cryptography.decrypt(encrypted.keyId(), encrypted.ciphertext()))
+                            .isEqualTo(plaintext);
+                });
+    }
 
     @Test
     void encryptsRoundTripAndBuildsCanonicalVersionedFlowKey() throws Exception {

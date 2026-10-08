@@ -15,7 +15,7 @@ import reactor.core.scheduler.Scheduler;
 import java.time.Instant;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class RedisReleaseNotificationListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisReleaseNotificationListener.class);

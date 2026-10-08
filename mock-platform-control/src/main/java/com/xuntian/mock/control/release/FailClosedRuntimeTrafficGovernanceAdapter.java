@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class FailClosedRuntimeTrafficGovernanceAdapter implements RuntimeTrafficGovernancePort {
 
     @Override

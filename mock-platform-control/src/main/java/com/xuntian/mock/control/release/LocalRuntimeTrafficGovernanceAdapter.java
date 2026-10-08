@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class LocalRuntimeTrafficGovernanceAdapter implements RuntimeTrafficGovernancePort {
 
     private final Set<String> removed = ConcurrentHashMap.newKeySet();

@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class ReleaseRefreshCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseRefreshCoordinator.class);

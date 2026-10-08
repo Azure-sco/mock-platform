@@ -17,7 +17,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class PublishedRuntimeSnapshotRepository implements RuntimeSnapshotRepository {
 
     private final LocalActiveReleaseRegistry activeReleases;

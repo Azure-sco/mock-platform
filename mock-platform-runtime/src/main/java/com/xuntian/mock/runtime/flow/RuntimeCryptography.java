@@ -2,6 +2,7 @@ package com.xuntian.mock.runtime.flow;
 
 import com.xuntian.mock.common.ErrorCode;
 import com.xuntian.mock.common.PlatformException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.context.annotation.Profile;
@@ -35,6 +36,7 @@ public final class RuntimeCryptography {
     private final LinkedHashMap<String, byte[]> hmacKeys;
     private final SecureRandom random = new SecureRandom();
 
+    @Autowired
     public RuntimeCryptography(
             @Value("${MOCK_RUNTIME_DATA_KEYS:}") String encryptionKeys,
             @Value("${MOCK_FLOW_HMAC_KEYS:}") String hmacKeys) {

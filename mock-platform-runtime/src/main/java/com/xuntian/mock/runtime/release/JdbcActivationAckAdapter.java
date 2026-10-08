@@ -11,7 +11,7 @@ import reactor.core.scheduler.Scheduler;
 import java.sql.Timestamp;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class JdbcActivationAckAdapter implements ActivationAckPort {
 
     private static final String UPSERT_ACK = """
@@ -21,7 +21,7 @@ public final class JdbcActivationAckAdapter implements ActivationAckPort {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 release_id = VALUES(release_id),
-                status = VALUES(status),
+                status = IF(status = 'READY', 'READY', VALUES(status)),
                 error_masked = VALUES(error_masked),
                 reported_at = VALUES(reported_at)
             """;

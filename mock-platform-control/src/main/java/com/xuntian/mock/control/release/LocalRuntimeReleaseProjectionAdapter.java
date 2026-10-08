@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class LocalRuntimeReleaseProjectionAdapter implements RuntimeReleaseProjectionPort {
 
     private final Map<String, byte[]> values = new ConcurrentHashMap<>();

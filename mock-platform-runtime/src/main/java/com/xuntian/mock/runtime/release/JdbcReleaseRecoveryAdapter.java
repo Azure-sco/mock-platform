@@ -11,7 +11,7 @@ import reactor.core.scheduler.Scheduler;
 import java.util.Optional;
 
 @Component
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public final class JdbcReleaseRecoveryAdapter implements ReleaseRecoveryPort {
 
     private static final String SELECT_ACTIVE_RELEASE = """

@@ -709,7 +709,8 @@ public final class ScenarioValidator {
             ArrayNode rules,
             List<ValidationIssue> errors) {
         for (ScenarioVersionRecord candidate : scenarioMapper.selectConflictCandidates(scenario.apiId(), current.id())) {
-            if (candidate.priority() != current.priority()
+            if (candidate.scenarioId() == current.scenarioId()
+                    || candidate.priority() != current.priority()
                     || !timeOverlaps(current.effectiveFrom(), current.effectiveTo(), candidate.effectiveFrom(), candidate.effectiveTo())) {
                 continue;
             }

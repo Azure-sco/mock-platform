@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class LocalReleaseCompatibilityAdapter implements ReleaseCompatibilityPort {
 
     @Override

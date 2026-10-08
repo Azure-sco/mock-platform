@@ -7,7 +7,7 @@ import java.util.List;
 import java.time.Duration;
 
 @Component("releaseLocalRuntimeNodeDiscoveryAdapter")
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class LocalRuntimeNodeDiscoveryAdapter implements RuntimeNodeDiscoveryPort {
 
     @Override

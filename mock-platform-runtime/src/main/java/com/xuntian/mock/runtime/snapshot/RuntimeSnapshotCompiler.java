@@ -97,15 +97,20 @@ public final class RuntimeSnapshotCompiler {
                     || definition.contractVersionId() <= 0)) {
                 throw new IllegalArgumentException("v2 Contract contractVersionId must be positive: " + key);
             }
-            CompiledContract.BusinessKeyExtractor extractor = definition.businessKeyExtractor() == null
+            var businessKey = definition.businessKeyExtractor();
+            // Older publishers serialized an absent optional extractor as an all-null object.
+            boolean absentExtractor = businessKey == null || (businessKey.source() == null
+                    && businessKey.path() == null && !businessKey.required() && businessKey.normalize() == null);
+            CompiledContract.BusinessKeyExtractor extractor = absentExtractor
                     ? null
                     : new CompiledContract.BusinessKeyExtractor(
-                            definition.businessKeyExtractor().source(),
-                            definition.businessKeyExtractor().path(),
+                            requireText(businessKey.source(), "businessKeyExtractor.source"),
+                            requireText(businessKey.path(), "businessKeyExtractor.path"),
                             definition.businessKeyExtractor().required(),
                             definition.businessKeyExtractor().normalize());
             Set<String> contentTypes = new LinkedHashSet<>(safe(definition.contentTypes()));
             if (definition.requestSchema() != null && !definition.requestSchema().isNull()
+                    && !(definition.requestSchema().isObject() && definition.requestSchema().isEmpty())
                     && !definition.requestSchema().isMissingNode() && contentTypes.stream()
                     .map(value -> value.split(";", 2)[0].trim())
                     .noneMatch("application/json"::equalsIgnoreCase)) {

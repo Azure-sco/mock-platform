@@ -41,6 +41,11 @@ public final class ReleaseActivationMonitor {
         Instant now = clock.instant();
         for (ReleaseActivationRecord activation : mapper.selectOpenActivations()) {
             try {
+                for (ReleaseTransactionService.AckCommand ack : mapper.selectRecordedTargetAcks(activation.id())) {
+                    transactions.acknowledge(ack);
+                }
+                activation = mapper.selectActivation(activation.id());
+                if ("APPLIED".equals(activation.status())) continue;
                 reconcileLeft(activation, now);
                 reconcileTimeout(activation, now);
             } catch (RuntimeException failure) {

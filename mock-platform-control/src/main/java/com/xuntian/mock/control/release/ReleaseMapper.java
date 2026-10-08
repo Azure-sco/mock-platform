@@ -315,6 +315,22 @@ public interface ReleaseMapper {
     List<ActivationTargetRecord> selectTargets(@Param("activationId") String activationId);
 
     @Select("""
+            SELECT a.environment, a.app_code AS app, a.runtime_node_id AS nodeId,
+                   a.release_id AS releaseId, a.activation_version AS activationVersion,
+                   a.status, a.error_masked AS errorMasked
+              FROM mock_runtime_activation_ack a
+              JOIN mock_release_activation r
+                ON r.environment = a.environment AND r.app_code = a.app_code
+               AND r.to_release_id = a.release_id AND r.to_activation_version = a.activation_version
+              JOIN mock_activation_target_node t
+                ON t.activation_id = r.id AND t.runtime_node_id = a.runtime_node_id
+             WHERE r.id = #{activationId} AND t.required = TRUE
+               AND t.status IN ('WAITING', 'FAILED') AND a.status IN ('READY', 'FAILED')
+             ORDER BY a.runtime_node_id
+            """)
+    List<ReleaseTransactionService.AckCommand> selectRecordedTargetAcks(@Param("activationId") String activationId);
+
+    @Select("""
             SELECT 
             """ + TARGET_COLUMNS + """
             FROM mock_activation_target_node WHERE activation_id = #{activationId}

@@ -17,6 +17,8 @@ import com.xuntian.mock.control.release.ReleaseCompatibilityPort;
 import com.xuntian.mock.control.release.ReleaseOutboxProjector;
 import com.xuntian.mock.control.release.ReleaseSecurityPolicyGate;
 import com.xuntian.mock.control.release.ReleaseService;
+import com.xuntian.mock.control.release.ReleaseActivationMonitor;
+import com.xuntian.mock.control.release.ReleaseMapper;
 import com.xuntian.mock.control.release.RuntimeActivationAckService;
 import com.xuntian.mock.control.release.RuntimeNodeDiscoveryPort;
 import com.xuntian.mock.control.release.RuntimeReleaseProjectionPort;
@@ -81,6 +83,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         })
 @Import(InfrastructureGateTest.GatePorts.class)
 class InfrastructureGateTest {
+
+    @Test
+    void redisSnapshotUsesTheSameJsonBytesAsRuntimeRecovery() {
+        var projection = new com.xuntian.mock.control.release.RedisRuntimeReleaseProjectionAdapter(redisTemplate);
+        byte[] envelope = "{\"keyId\":\"test\",\"snapshot\":{}}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String releaseId = "encoding-regression";
+        projection.putImmutableSnapshot(releaseId, envelope);
+        assertThat(redisTemplate.opsForValue().get("mock:release-snapshot:" + releaseId))
+                .isEqualTo(new String(envelope, java.nio.charset.StandardCharsets.UTF_8));
+        redisTemplate.opsForValue().set("mock:release-snapshot:" + releaseId,
+                new String(envelope, java.nio.charset.StandardCharsets.UTF_8));
+        projection.putImmutableSnapshot(releaseId, envelope);
+        assertThat(projection.readImmutableSnapshot(releaseId)).isEqualTo(envelope);
+        redisTemplate.opsForValue().set("mock:release-snapshot:" + releaseId,
+                java.util.Base64.getEncoder().encodeToString(envelope));
+        projection.putImmutableSnapshot(releaseId, envelope);
+        assertThat(redisTemplate.opsForValue().get("mock:release-snapshot:" + releaseId))
+                .isEqualTo(new String(envelope, java.nio.charset.StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> projection.putImmutableSnapshot(releaseId, "{}".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .isInstanceOf(com.xuntian.mock.common.PlatformException.class);
+    }
+
+    @Autowired
+    private ReleaseActivationMonitor activationMonitor;
+
+    @Autowired
+    private ReleaseMapper releaseMapper;
 
     @Container
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0.36")
@@ -367,6 +396,21 @@ class InfrastructureGateTest {
         assertThat(pointer.path("snapshotChecksum").asText()).isEqualTo(release.release().checksum());
         assertThat(pointer.path("signatureKeyId").asText()).isEqualTo(release.release().signatureKeyId());
 
+        // Runtime persists ACKs directly. Unrelated release/node ACKs must not mark a target READY.
+        var otherRelease = releaseService.create(
+                new ReleaseService.CreateCommand("gate-unpublished", "TEST", "gate-app",
+                        List.of(scenarioVersion.id()), "unpublished ACK mismatch test"),
+                operator("gate-admin", "gate-unpublished-create"));
+        releaseMapper.upsertAck("TEST", "gate-app", "runtime-gate-1", otherRelease.release().id(),
+                1L, "READY", null, Instant.now());
+        releaseMapper.upsertAck("TEST", "gate-app", "unknown-node", release.release().id(),
+                1L, "READY", null, Instant.now());
+        assertThat(releaseMapper.selectRecordedTargetAcks(activation.activation().id())).isEmpty();
+        releaseMapper.upsertAck("TEST", "gate-app", "runtime-gate-1", release.release().id(),
+                1L, "READY", null, Instant.now());
+        activationMonitor.reconcile();
+        assertThat(releaseService.activation(activation.activation().id()).activation().status()).isEqualTo("APPLIED");
+        // The authenticated HTTP ACK route remains idempotent after reconciliation.
         var ack = runtimeActivationAckService.acknowledge(
                 new RuntimeActivationAckService.AckCommand(
                         "TEST", "gate-app", "runtime-gate-1", release.release().id(),
@@ -392,6 +436,34 @@ class InfrastructureGateTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM mock_release_outbox WHERE activation_id=? AND status='PROJECTED'",
                 Integer.class, activation.activation().id())).isEqualTo(1);
+
+        // Updating the same Scenario must not conflict with its immutable published history.
+        JsonNode replacementResponse = response.deepCopy();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) replacementResponse).put("bodyTemplate", "{\"ok\":false}");
+        var replacement = scenarioService.createVersion(scenario.id(),
+                new ScenarioService.CreateVersionCommand(contract.id(), null, 100, null, null,
+                        scope, rules, replacementResponse, objectMapper.createArrayNode()),
+                operator("gate-admin", "gate-replacement-create"));
+        replacement = scenarioService.validate(replacement.id(), operator("gate-admin", "gate-replacement-validate"));
+        assertThat(replacement.validationStatus()).isEqualTo("VALID");
+        var replacementApproval = scenarioService.submitApproval(replacement.id(), operator("gate-admin", "gate-replacement-submit"));
+        approvalService.decide(replacementApproval.id(), "APPROVE", "replacement version",
+                operator("gate-reviewer", "gate-replacement-approve"));
+        List<Long> conflictingSelection = List.of(scenarioVersion.id(), replacement.id());
+        assertThatThrownBy(() -> releaseService.validate(new ReleaseService.CreateCommand(
+                "invalid-multiple-versions", "TEST", "gate-app", conflictingSelection, null)))
+                .isInstanceOf(com.xuntian.mock.common.PlatformException.class);
+
+        var otherScenario = scenarioService.create(new ScenarioService.CreateCommand(
+                "gate-conflicting-scenario", "Conflicting scenario", provider.id(), api.id()),
+                operator("gate-admin", "gate-other-create"));
+        var conflict = scenarioService.createVersion(otherScenario.id(),
+                new ScenarioService.CreateVersionCommand(contract.id(), null, 100, null, null,
+                        scope, rules, response, objectMapper.createArrayNode()),
+                operator("gate-admin", "gate-other-version"));
+        var conflictResult = scenarioService.validate(conflict.id(), operator("gate-admin", "gate-other-validate"));
+        assertThat(conflictResult.validationStatus()).isEqualTo("INVALID");
+        assertThat(conflictResult.validationResult().toString()).contains("SCENARIO_CONFLICT");
     }
 
     private OperatorContext operator(String operator, String requestId) {

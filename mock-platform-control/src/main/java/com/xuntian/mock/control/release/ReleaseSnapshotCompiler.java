@@ -364,7 +364,7 @@ public final class ReleaseSnapshotCompiler {
     private BusinessKeyDefinition businessKey(String json) {
         if (json == null) return null;
         JsonNode value = parse(json, "businessKeyExtractor");
-        if (value == null || value.isNull()) return null;
+        if (value == null || value.isNull() || (value.isObject() && value.isEmpty())) return null;
         if (!value.isObject()) {
             throw new PlatformException(ErrorCode.INVALID_STATE, "Stored Business Key Extractor is invalid");
         }

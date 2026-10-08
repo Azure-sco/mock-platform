@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Component
-@Profile({"local", "test"})
+@Profile("(local & !local-published) | test")
 public final class FixtureRuntimeSnapshotRepository implements RuntimeSnapshotRepository {
 
     private final Map<SnapshotKey, RuntimeSnapshot> snapshots;

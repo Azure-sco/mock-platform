@@ -20,6 +20,7 @@ import com.xuntian.mock.control.sdkconfig.SdkConfigMapper;
 import com.xuntian.mock.control.securitypolicy.SecurityPolicyMapper;
 import com.xuntian.mock.control.web.DashboardMapper;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -124,6 +125,18 @@ class ControlApiIntegrationTest {
         mockMvc.perform(get("/api/dashboard/summary"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void restoresCallingThreadRequestIdAfterRequest() throws Exception {
+        MDC.put("requestId", "outer-request");
+        try {
+            mockMvc.perform(get("/api/platform/health"))
+                    .andExpect(status().isOk());
+            assertThat(MDC.get("requestId")).isEqualTo("outer-request");
+        } finally {
+            MDC.remove("requestId");
+        }
     }
 
     @Test

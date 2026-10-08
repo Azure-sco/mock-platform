@@ -1,0 +1,11 @@
+spring:
+  config:
+    activate:
+      on-profile: "local & local-published"
+server:
+  address: 127.0.0.1
+mock:
+  local-published:
+    private-key-file: ${MOCK_SNAPSHOT_PRIVATE_KEY_FILE}
+    public-key-file: ${MOCK_SNAPSHOT_PUBLIC_KEY_FILE}
+    node-id: ${MOCK_RUNTIME_NODE_ID:runtime-local-1}

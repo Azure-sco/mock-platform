@@ -1,0 +1,14 @@
+spring:
+  config:
+    activate:
+      on-profile: "local & local-published"
+server:
+  address: 127.0.0.1
+xuntian:
+  mock:
+    runtime:
+      environment: TEST
+      runtime-node-id: ${MOCK_RUNTIME_NODE_ID:runtime-local-1}
+      published-apps: ${MOCK_RUNTIME_APPS:sample-jdk8,sample-jdk17}
+      snapshot-public-keys:
+        local-published-rsa-2048: ${MOCK_SNAPSHOT_PUBLIC_KEY}

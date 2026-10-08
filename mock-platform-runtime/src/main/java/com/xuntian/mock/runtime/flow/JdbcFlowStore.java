@@ -24,7 +24,7 @@ import java.util.Map;
 
 @Repository
 @Profile("!test")
-public final class JdbcFlowStore {
+public class JdbcFlowStore {
 
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() { };
     private final JdbcTemplate jdbc;

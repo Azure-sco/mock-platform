@@ -10,7 +10,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Configuration(proxyBeanMethods = false)
-@Profile("!local & !test")
+@Profile("(!local & !test) | (local & local-published & !test)")
 public class ReleaseRuntimeConfiguration {
 
     @Bean

@@ -1,3 +1,4 @@
+import { formatShanghaiTime } from '../utils/time'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getControlHealth, getDashboardSummary, getRuntimeHealth } from '../api/platform'
@@ -30,7 +31,7 @@ export const useHealthStore = defineStore('health', () => {
       checkStatus.value = controlResult.status === 'fulfilled' && runtimeResult.status === 'fulfilled'
         ? 'SUCCESS'
         : 'ERROR'
-      lastCheckedAt.value = new Date().toLocaleString('zh-CN', { hour12: false })
+      lastCheckedAt.value = formatShanghaiTime(new Date().toISOString())
     } finally {
       loading.value = false
     }

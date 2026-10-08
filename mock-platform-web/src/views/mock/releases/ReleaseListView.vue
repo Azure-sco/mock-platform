@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -263,7 +264,7 @@ watch(() => session.environment, () => {
         <el-table-column label="状态" width="120"><template #default="{ row }"><el-tag :type="releaseTag(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Snapshot Checksum" min-width="250" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum }}</code></template></el-table-column>
         <el-table-column prop="signatureKeyId" label="签名 Key" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.createdAt) }}</template></el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canPublish || row.status !== 'READY'" @click="activate(row, 'publish')">发布</el-button>

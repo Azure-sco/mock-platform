@@ -175,6 +175,8 @@ npm run build
 
 ## 当前阶段与限制
 
+需要通过 Web 修改固定响应并免重启发布时，使用 [本地发布配置指南](docs/development/local-published-guide.md)。显式启用 `local,local-published` 可连接管理数据库、Redis 投影、签名快照和 Runtime ACK；普通 `local` 仍使用内置 Fixture。
+
 M1～M4 核心实现和自动化样例已完成；M5 已有九接口目录、Web Console、固定性能脚本和运维文档，但正式性能/故障/可用性证据及公司基础设施 Adapter 尚未完成。准确能力、偏差和外部依赖见 [当前实现能力](docs/current-implementation-capabilities.md)。
 
 从零启动、Docker、Flyway、后端、双 JDK Sample 和 Web 的精确操作见 [本地启动与人工验收指南](docs/development/manual-acceptance-guide.md)；性能与故障演练见 [MVP 运维、性能与故障演练](docs/development/mvp-operations-and-fault-drills.md)。

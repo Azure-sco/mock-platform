@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime, shanghaiDayStart, shanghaiDayAfter } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref, shallowRef } from 'vue'
@@ -44,16 +45,6 @@ function emptyFilters(): RequestFilters {
   }
 }
 
-function utcDayStart(value: string): string {
-  return new Date(`${value}T00:00:00.000Z`).toISOString()
-}
-
-function utcDayAfter(value: string): string {
-  const date = new Date(`${value}T00:00:00.000Z`)
-  date.setUTCDate(date.getUTCDate() + 1)
-  return date.toISOString()
-}
-
 function query(): RequestLogQuery {
   const range = dateRange.value
   return {
@@ -67,8 +58,8 @@ function query(): RequestLogQuery {
     mockRequestId: filters.mockRequestId.trim() || undefined,
     businessNoHmac: filters.businessNoHmac.trim() || undefined,
     hmacKeyVersion: filters.hmacKeyVersion.trim() || undefined,
-    createdFrom: range?.[0] ? utcDayStart(range[0]) : undefined,
-    createdTo: range?.[1] ? utcDayAfter(range[1]) : undefined,
+    createdFrom: range?.[0] ? shanghaiDayStart(range[0]) : undefined,
+    createdTo: range?.[1] ? shanghaiDayAfter(range[1]) : undefined,
   }
 }
 
@@ -181,7 +172,7 @@ onMounted(() => loadLogs())
         <el-form-item label="HMAC Key Version">
           <el-input v-model="filters.hmacKeyVersion" clearable maxlength="32" />
         </el-form-item>
-        <el-form-item label="创建日期">
+        <el-form-item label="创建日期（上海时间）">
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -200,7 +191,7 @@ onMounted(() => loadLogs())
 
     <el-card class="table-card" shadow="never">
       <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="logs" row-key="id">
-        <el-table-column prop="createdAt" label="时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="时间" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.createdAt) }}</template></el-table-column>
         <el-table-column prop="appCode" label="App" min-width="130" show-overflow-tooltip />
         <el-table-column label="Provider / API" min-width="230">
           <template #default="{ row }">
@@ -264,8 +255,8 @@ onMounted(() => loadLogs())
             <el-descriptions-item label="Release">{{ detail.releaseId || '—' }}</el-descriptions-item>
             <el-descriptions-item label="状态 / 耗时">{{ detail.httpStatus }} / {{ detail.durationMs }} ms</el-descriptions-item>
             <el-descriptions-item label="错误码">{{ detail.errorCode || '—' }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ detail.createdAt }}</el-descriptions-item>
-            <el-descriptions-item label="到期时间">{{ detail.expireAt || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatShanghaiTime(detail.createdAt) }}</el-descriptions-item>
+            <el-descriptions-item label="到期时间">{{ formatShanghaiTime(detail.expireAt) }}</el-descriptions-item>
           </el-descriptions>
 
           <div class="summary-grid">

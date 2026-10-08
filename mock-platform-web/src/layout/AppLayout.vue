@@ -9,6 +9,7 @@ const route = useRoute()
 const session = useSessionStore()
 const health = useHealthStore()
 const helpVisible = ref(false)
+const localDevelopment = import.meta.env.DEV
 const title = computed(() => String(route.meta.title || 'Mock 平台'))
 const environment = computed({
   get: () => session.environment,
@@ -22,16 +23,16 @@ const healthPill = computed(() => {
 })
 const navGroups = [
   {
-    label: '运行',
+    label: '工作台',
     items: [
+      { to: '/mock/interfaces', icon: 'apis', label: '接口 Mock' },
       { to: '/mock/dashboard', icon: 'dashboard', label: '运行概览' },
       { to: '/mock/requests', icon: 'requests', label: '请求记录' },
-      { to: '/mock/callbacks', icon: 'callbacks', label: '回调任务' },
-      { to: '/mock/flows', icon: 'flows', label: '流程实例' },
+      { to: '/mock/approvals', icon: 'approvals', label: '审批中心' },
     ],
   },
   {
-    label: '配置',
+    label: '高级配置',
     items: [
       { to: '/mock/providers', icon: 'providers', label: 'Provider 管理' },
       { to: '/mock/apis', icon: 'apis', label: 'API 管理' },
@@ -45,7 +46,8 @@ const navGroups = [
     label: '治理',
     items: [
       { to: '/mock/releases', icon: 'releases', label: '发布与回滚' },
-      { to: '/mock/approvals', icon: 'approvals', label: '审批中心' },
+      { to: '/mock/callbacks', icon: 'callbacks', label: '回调任务' },
+      { to: '/mock/flows', icon: 'flows', label: '流程实例' },
       { to: '/mock/security-policies', icon: 'security', label: '安全策略' },
       { to: '/mock/audits', icon: 'audits', label: '审计日志' },
     ],
@@ -61,13 +63,14 @@ const navGroups = [
         <div v-if="!session.sidebarCollapsed"><strong>巡天 Mock</strong><small>第三方接口平台</small></div>
       </div>
       <nav id="main-navigation" class="navigation" aria-label="主导航">
-        <section v-for="group in navGroups" :key="group.label" class="nav-group">
-          <p v-if="!session.sidebarCollapsed" class="nav-group-title">{{ group.label }}</p>
+        <component :is="group.label === '工作台' ? 'section' : 'details'" v-for="group in navGroups" :key="group.label" class="nav-group"
+          :open="group.items.some(item => route.path === item.to)">
+          <component :is="group.label === '工作台' ? 'p' : 'summary'" v-if="!session.sidebarCollapsed || group.label !== '工作台'" class="nav-group-title" style="cursor: pointer">{{ session.sidebarCollapsed ? '更多' : group.label }}</component>
           <RouterLink v-for="item in group.items" :key="item.to" :to="item.to" class="nav-item" :title="item.label" :aria-label="item.label">
             <span class="nav-icon"><AppIcon :name="item.icon" /></span>
             <span v-if="!session.sidebarCollapsed">{{ item.label }}</span>
           </RouterLink>
-        </section>
+        </component>
       </nav>
       <button class="sidebar-help" type="button" title="帮助与交付说明" aria-label="帮助与交付说明" @click="helpVisible = true">
         <span class="nav-icon"><AppIcon name="help" /></span><span v-if="!session.sidebarCollapsed">帮助与交付说明</span>
@@ -89,6 +92,11 @@ const navGroups = [
             <span class="operator-avatar">{{ session.displayName.slice(0, 1) }}</span>
             <div><strong>{{ session.displayName }}</strong><small>{{ session.operatorId }}</small></div>
           </div>
+          <el-select v-if="localDevelopment" :model-value="session.operatorId"
+            style="width: 150px" aria-label="本地操作身份" @change="session.switchLocalOperator">
+            <el-option label="本地管理员" value="local-admin" />
+            <el-option label="本地审批人" value="local-reviewer" />
+          </el-select>
         </div>
       </header>
       <main class="page-content"><RouterView /></main>

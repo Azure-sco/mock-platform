@@ -52,6 +52,15 @@ export const useSessionStore = defineStore('session', () => {
     return roles.value.includes(role)
   }
 
+  function switchLocalOperator(value: string) {
+    if (!import.meta.env.DEV || !['local-admin', 'local-reviewer'].includes(value)) return
+    operatorId.value = value
+    displayName.value = value === 'local-admin' ? '本地管理员' : '本地审批人'
+    roles.value = value === 'local-admin'
+      ? ['MOCK_ADMIN', 'MOCK_VIEWER']
+      : ['MOCK_APPROVER', 'MOCK_VIEWER']
+  }
+
   return {
     operatorId,
     displayName,
@@ -61,5 +70,6 @@ export const useSessionStore = defineStore('session', () => {
     sidebarCollapsed,
     toggleSidebar,
     hasRole,
+    switchLocalOperator,
   }
 })

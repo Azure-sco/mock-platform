@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   LatestRequestGate,
   SubmissionCoordinator,
-} from '../node_modules/.cache/mock-platform-tests/requestControl.js'
+} from '../node_modules/.cache/mock-platform-tests/utils/requestControl.js'
 
 test('only the newest cascading request may update state', () => {
   const gate = new LatestRequestGate()

@@ -4,11 +4,17 @@ import AppLayout from '../layout/AppLayout.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/mock/dashboard' },
+    { path: '/', redirect: '/mock/interfaces' },
     {
       path: '/mock',
       component: AppLayout,
       children: [
+        {
+          path: 'interfaces',
+          name: 'mock-interfaces',
+          component: () => import('../views/mock/interfaces/InterfaceMockView.vue'),
+          meta: { title: '接口 Mock' },
+        },
         {
           path: 'dashboard',
           name: 'mock-dashboard',

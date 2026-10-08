@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -171,7 +172,7 @@ onMounted(() => loadProviders())
           </template>
         </el-table-column>
         <el-table-column prop="updatedAt" label="更新时间" min-width="170" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.updatedAt || '—' }}</template>
+          <template #default="{ row }">{{ formatShanghaiTime(row.updatedAt) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="190" fixed="right">
           <template #default="{ row }">

@@ -263,6 +263,8 @@ npm run dev -- --host 127.0.0.1
 
 ## 第 13 步：理解本地 Fixture 与正式发布的边界
 
+如果需要通过页面修改固定响应并动态发布，使用 [本地发布配置指南](local-published-guide.md) 的 `local,local-published` 启动方式；下述 Fixture 边界针对单独的 `local` 模式。
+
 `local` Profile 使用 `FixtureRuntimeSnapshotRepository`，便于无公司 KMS/Service Identity 时验证规则引擎。`mvp-demo-fixture.json` 可编译验证九接口，但带 Flow 的实例仍受 MySQL 对 Release、Scenario Version、Flow Version 和 Security Policy 的真实外键约束。
 
 因此：

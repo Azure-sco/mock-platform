@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
@@ -238,7 +239,7 @@ watch(() => session.environment, () => {
         <el-table-column label="状态" width="150"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="checksum" label="Envelope Checksum" min-width="250" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum }}</code></template></el-table-column>
         <el-table-column label="策略版本" min-width="140"><template #default="{ row }">{{ policyVersionLabels(row) }}</template></el-table-column>
-        <el-table-column prop="effectiveAt" label="计划生效" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="effectiveAt" label="计划生效" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.effectiveAt) }}</template></el-table-column>
         <el-table-column label="操作" width="245" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :disabled="!canPublish || row.status !== 'DRAFT'" @click="runAction(row, 'validate')">校验</el-button>

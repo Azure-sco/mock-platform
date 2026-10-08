@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref } from 'vue'
@@ -193,7 +194,7 @@ onMounted(load)
         </el-table-column>
         <el-table-column label="草稿版本" width="100"><template #default="{ row }">v{{ row.currentDraftVersion }}</template></el-table-column>
         <el-table-column prop="status" label="状态" width="110" show-overflow-tooltip><template #default="{ row }"><el-tag effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="updatedAt" label="更新时间" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.updatedAt) }}</template></el-table-column>
         <el-table-column label="操作" width="100" fixed="right"><template #default="{ row }"><el-button link type="primary" :loading="actionId === row.id" @click="openVersions(row)">版本</el-button></template></el-table-column>
         <template #empty><EmptyState description="暂无 Flow Definition" /></template>
       </el-table>

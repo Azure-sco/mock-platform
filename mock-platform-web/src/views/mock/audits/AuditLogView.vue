@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref } from 'vue'
@@ -69,7 +70,7 @@ onMounted(load)
     </el-card>
     <el-card class="table-card" shadow="never">
       <el-table max-height="max(240px, calc(100vh - var(--table-offset, 230px)))" v-loading="loading" :data="records" style="width: 100%">
-        <el-table-column prop="createdAt" label="时间" min-width="185" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="时间" min-width="185" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.createdAt) }}</template></el-table-column>
         <el-table-column prop="operator" label="操作者" min-width="135" show-overflow-tooltip />
         <el-table-column prop="action" label="动作" min-width="150" show-overflow-tooltip />
         <el-table-column label="对象" min-width="185">

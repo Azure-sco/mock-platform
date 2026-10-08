@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref } from 'vue'
@@ -148,7 +149,7 @@ onMounted(load)
         <el-table-column label="准备重试" width="105"><template #default="{ row }">{{ row.preparationRetryCount }} / {{ row.maxPreparationRetry }}</template></el-table-column>
         <el-table-column prop="fencingToken" label="Fencing" width="85" show-overflow-tooltip />
         <el-table-column prop="lastHttpStatus" label="HTTP" width="80" show-overflow-tooltip />
-        <el-table-column prop="nextExecuteAt" label="下次执行" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="nextExecuteAt" label="下次执行" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.nextExecuteAt) }}</template></el-table-column>
         <el-table-column label="操作" width="185" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.taskId" @click="openAttempts(row)">Attempts</el-button>
@@ -169,8 +170,8 @@ onMounted(load)
         <el-table-column prop="status" label="状态" min-width="165" show-overflow-tooltip />
         <el-table-column prop="deliveryCertainty" label="投递确定性" min-width="190" show-overflow-tooltip />
         <el-table-column prop="httpStatus" label="HTTP" width="80" show-overflow-tooltip />
-        <el-table-column prop="startedAt" label="开始" min-width="175" show-overflow-tooltip />
-        <el-table-column prop="completedAt" label="完成" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="startedAt" label="开始" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.startedAt) }}</template></el-table-column>
+        <el-table-column prop="completedAt" label="完成" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.completedAt) }}</template></el-table-column>
         <el-table-column prop="resultMasked" label="结果（脱敏）" min-width="180" show-overflow-tooltip />
       </el-table>
     </el-card>

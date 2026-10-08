@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   activationVersionFor,
   releaseScopeKey,
-} from '../node_modules/.cache/mock-platform-tests/releaseActivation.js'
+} from '../node_modules/.cache/mock-platform-tests/utils/releaseActivation.js'
 
 test('release activation uses the authority for the target environment and app', () => {
   const release = { environment: 'UAT', appCode: 'orders' }

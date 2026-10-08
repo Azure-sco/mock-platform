@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { onMounted, reactive, ref, shallowRef, watch } from 'vue'
@@ -173,7 +174,7 @@ watch(() => session.environment, () => {
         <el-table-column label="Generation" width="105"><template #default="{ row }">g{{ row.generation }}</template></el-table-column>
         <el-table-column prop="queryCount" label="查询次数" width="95" show-overflow-tooltip />
         <el-table-column prop="releaseId" label="固定 Release" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="expireAt" label="过期时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="expireAt" label="过期时间" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.expireAt) }}</template></el-table-column>
         <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionKey === row.flowKey" @click="openEvents(row)">事件</el-button>
@@ -189,7 +190,7 @@ watch(() => session.environment, () => {
     <el-card v-if="selected" class="table-card" shadow="never">
       <template #header><strong>{{ selected.flowCode }} / {{ selected.businessNoMasked }} · Generation {{ selected.generation }} 事件</strong></template>
       <el-table :data="events" row-key="eventId">
-        <el-table-column prop="eventAt" label="时间" min-width="175" show-overflow-tooltip />
+        <el-table-column prop="eventAt" label="时间" min-width="175" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.eventAt) }}</template></el-table-column>
         <el-table-column prop="sourceType" label="来源" width="90" show-overflow-tooltip />
         <el-table-column prop="eventType" label="事件" min-width="120" show-overflow-tooltip />
         <el-table-column prop="transitionId" label="Transition" min-width="145" show-overflow-tooltip />

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, ref } from 'vue'
@@ -12,7 +13,7 @@ import { SubmissionCoordinator } from '../../../utils/requestControl'
 
 const errors = useErrorStore()
 const session = useSessionStore()
-const canApprove = computed(() => session.hasRole('MOCK_ADMIN'))
+const canApprove = computed(() => session.hasRole('MOCK_ADMIN') || session.hasRole('MOCK_APPROVER'))
 const loading = ref(false)
 const actionId = ref<number | null>(null)
 const approvals = ref<ApprovalRequest[]>([])
@@ -97,7 +98,7 @@ onMounted(load)
           <template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template>
         </el-table-column>
         <el-table-column prop="requestedBy" label="提交人" width="130" show-overflow-tooltip />
-        <el-table-column prop="requestedAt" label="提交时间" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="requestedAt" label="提交时间" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.requestedAt) }}</template></el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canApprove || row.status !== 'PENDING'" @click="decide(row, 'approve')">批准</el-button>

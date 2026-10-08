@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "test": "tsc src/utils/requestControl.ts src/utils/releaseActivation.ts --outDir node_modules/.cache/mock-platform-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --strict --skipLibCheck && node --test tests/*.test.mjs",
+    "test": "tsc src/utils/interfaceWorkflow.ts src/utils/time.ts src/utils/requestControl.ts src/utils/releaseActivation.ts --outDir node_modules/.cache/mock-platform-tests --rootDir src --module ESNext --moduleResolution Bundler --target ES2022 --strict --skipLibCheck && node --test tests/*.test.mjs",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "build": "npm run type-check && vite build"

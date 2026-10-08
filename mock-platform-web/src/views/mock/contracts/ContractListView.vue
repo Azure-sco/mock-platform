@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShanghaiTime } from '../../../utils/time'
 import EmptyState from '../../../components/EmptyState.vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { computed, onMounted, ref, shallowRef } from 'vue'
@@ -247,7 +248,7 @@ onMounted(initialize)
         <el-table-column prop="checksum" label="Checksum" min-width="230" show-overflow-tooltip><template #default="{ row }"><code>{{ row.checksum || '—' }}</code></template></el-table-column>
         <el-table-column prop="sourceType" label="来源" width="110" show-overflow-tooltip />
         <el-table-column prop="createdBy" label="创建人" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.createdBy || '—' }}</template></el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ row.createdAt || '—' }}</template></el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" min-width="170" show-overflow-tooltip><template #default="{ row }">{{ formatShanghaiTime(row.createdAt) }}</template></el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :loading="actionId === row.id" :disabled="!canEdit || row.status !== 'DRAFT' || Boolean(actionId)" @click="runAction(row, 'validate')">校验</el-button>

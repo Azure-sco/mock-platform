@@ -19,6 +19,8 @@ import org.springframework.http.client.AbstractClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +35,7 @@ import java.util.Optional;
 
 public final class MockClientHttpRequestFactory implements ClientHttpRequestFactory {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MockClientHttpRequestFactory.class);
     private final ClientHttpRequestFactory delegate;
     private final MockConfigProvider configProvider;
     private final String mockAppToken;
@@ -55,6 +58,10 @@ public final class MockClientHttpRequestFactory implements ClientHttpRequestFact
         }
         MockContext context = current.get();
         RouteDecision decision = routeResolver.resolve(configProvider.current(), context);
+        LOG.debug(
+                "Mock route decision mockRequestId={} provider={} api={} mode={}",
+                logValue(context.mockRequestId()), logValue(context.provider()), logValue(context.api()),
+                decision.mode());
         if (decision.mode() == MockMode.REAL) {
             return delegate.createRequest(uri, httpMethod);
         }
@@ -106,6 +113,10 @@ public final class MockClientHttpRequestFactory implements ClientHttpRequestFact
                 return executeCopy(mockUri, sanitize(originalHeaders));
             } catch (IOException failure) {
                 FailureAction action = MockFailurePolicy.decide(context, decision, originalUri, true, failure);
+                LOG.warn(
+                        "Mock Runtime request failed mockRequestId={} provider={} api={} action={} errorType={}",
+                        logValue(context.mockRequestId()), logValue(context.provider()), logValue(context.api()), action,
+                        failure.getClass().getSimpleName());
                 if (action == FailureAction.FALLBACK_REAL) {
                     return executeCopy(originalUri, copy(originalHeaders));
                 }
@@ -138,6 +149,11 @@ public final class MockClientHttpRequestFactory implements ClientHttpRequestFact
             }
             return copy;
         }
+    }
+
+    private static String logValue(String value) {
+        String safe = value == null ? "" : value.replace('\r', '_').replace('\n', '_');
+        return safe.length() <= 64 ? safe : safe.substring(0, 64);
     }
 
     private static final class StaticResponse implements ClientHttpResponse {

@@ -15,6 +15,8 @@ import com.xuntian.mock.client.core.security.MockHeaders;
 import feign.Client;
 import feign.Request;
 import feign.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,6 +30,7 @@ import java.util.Optional;
 
 public final class MockFeignClient implements Client {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MockFeignClient.class);
     private final Client delegate;
     private final MockConfigProvider configProvider;
     private final String mockAppToken;
@@ -47,6 +50,10 @@ public final class MockFeignClient implements Client {
         }
         MockContext context = current.get();
         RouteDecision decision = routeResolver.resolve(configProvider.current(), context);
+        LOG.debug(
+                "Mock route decision mockRequestId={} provider={} api={} mode={}",
+                logValue(context.mockRequestId()), logValue(context.provider()), logValue(context.api()),
+                decision.mode());
         if (decision.mode() == MockMode.REAL) {
             return delegate.execute(original, options);
         }
@@ -57,6 +64,10 @@ public final class MockFeignClient implements Client {
             return delegate.execute(mockRequest, options);
         } catch (IOException failure) {
             FailureAction action = MockFailurePolicy.decide(context, decision, originalUri, true, failure);
+            LOG.warn(
+                    "Mock Runtime request failed mockRequestId={} provider={} api={} action={} errorType={}",
+                    logValue(context.mockRequestId()), logValue(context.provider()), logValue(context.api()), action,
+                    failure.getClass().getSimpleName());
             if (action == FailureAction.FALLBACK_REAL) {
                 return delegate.execute(original, options);
             }
@@ -65,6 +76,11 @@ public final class MockFeignClient implements Client {
             }
             throw new MockRuntimeUnavailableException(context.mockRequestId(), failure);
         }
+    }
+
+    private static String logValue(String value) {
+        String safe = value == null ? "" : value.replace('\r', '_').replace('\n', '_');
+        return safe.length() <= 64 ? safe : safe.substring(0, 64);
     }
 
     private Request copyForMock(Request original, MockContext context, RouteDecision decision) {

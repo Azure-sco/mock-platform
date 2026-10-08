@@ -127,7 +127,12 @@ public final class MockRuntimeController {
             RequestLogEntry entry = RequestLogEntry.failure(
                     request, failure, elapsedMillis(started), properties, Instant.now());
             return safeWrite(entry).then(Mono.error(failure));
-        });
+        }).doOnSuccess(response -> LOG.debug(
+                "Runtime request completed mockRequestId={} traceId={} method={} path={} provider={} api={} "
+                        + "status={} durationMs={} bodyBytes={}",
+                mockRequestId, traceId, serverRequest.getMethod().name(), serverRequest.getURI().getRawPath(),
+                logValue(provider), logValue(api), response.getStatusCode().value(), elapsedMillis(started),
+                body.length));
     }
 
     static Mono<byte[]> readBody(ServerHttpRequest request) {
@@ -193,5 +198,10 @@ public final class MockRuntimeController {
 
     private static long elapsedMillis(long started) {
         return Math.max(0, (System.nanoTime() - started) / 1_000_000);
+    }
+
+    private static String logValue(String value) {
+        String safe = value == null ? "" : value.replace('\r', '_').replace('\n', '_');
+        return safe.length() <= 64 ? safe : safe.substring(0, 64);
     }
 }
